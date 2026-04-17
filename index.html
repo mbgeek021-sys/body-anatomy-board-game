@@ -1,141 +1,974 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Body Anatomy Board Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Body Anatomy Board Game</title>
+  <style>
+    :root{
+      --bg1:#173430;
+      --bg2:#102321;
+      --panel:#0d1720d9;
+      --panel2:#132430d9;
+      --card:#2a3c4a;
+      --line:#d6ece833;
+      --text:#eff8f7;
+      --muted:#b7cfcb;
+      --accent:#5f8f89;
+      --accent2:#3f6f69;
+      --safe:#2f9a89;
+      --risk:#c85c67;
+      --health:#2c94be;
+      --chance:#6f63d8;
+      --energy:#d3a341;
+      --surgery:#c96a34;
+      --start:#22b875;
+      --finish:#d53df2;
+    }
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0f2e2c, #1c4d4a);
-  color: white;
-}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;min-height:100%;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,var(--bg1),var(--bg2) 45%,#0c1716 100%);color:var(--text)}
+    button,input{font:inherit}
+    .hidden{display:none!important}
 
-.container {
-  display: flex;
-  height: 100vh;
-}
+    .screen{min-height:100vh;padding:14px}
+    .lobby-wrap{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+    .glass{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(12px);box-shadow:0 18px 60px rgba(0,0,0,.22)}
+    .lobby-left,.lobby-right{border-radius:30px;padding:22px}
+    .lobby-left{background:linear-gradient(135deg,#eef6f4,#e2ecea);color:#18242d}
+    .lobby-right{background:linear-gradient(180deg,#182730,#101a20)}
+    .brand{display:flex;gap:16px;align-items:center}
+    .logo{width:66px;height:66px;border-radius:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;box-shadow:0 12px 24px rgba(0,0,0,.2)}
+    .logo span{font-size:30px}
+    .domain{font-size:12px;letter-spacing:.34em;text-transform:uppercase;font-weight:900;color:#0f7568}
+    .title{font-size:46px;line-height:1;font-weight:900;margin:.18em 0}
+    .subtitle{font-size:14px;color:#556a73}
+    .code-box{margin-top:24px;border-radius:26px;padding:24px;background:#edf4f2;border:1px solid #d8e5e2}
+    .code-big{margin-top:16px;border-radius:22px;padding:22px;background:linear-gradient(135deg,#567c76,#415f5a);text-align:center;color:#fff}
+    .code-big .small{font-size:12px;letter-spacing:.34em;text-transform:uppercase;font-weight:900;opacity:.84}
+    .code-big .code{font-size:68px;font-weight:900;letter-spacing:.08em}
+    .lobby-tag{font-size:12px;letter-spacing:.32em;text-transform:uppercase;font-weight:900;color:#8ae3d7}
+    .lobby-title{font-size:42px;font-weight:900;line-height:1.05;margin:.22em 0}
+    .lobby-copy{font-size:14px;line-height:1.45;color:#bfd6d1}
+    .entry-card{margin-top:22px;border-radius:20px;padding:16px;background:rgba(255,255,255,.05)}
+    .entry-label{font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:900;color:#9eb8b4;margin-bottom:8px}
+    .entry-input{width:100%;height:52px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;padding:0 14px;font-weight:700}
+    .entry-input::placeholder{color:#9db1bb}
+    .entry-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 
-/* LEFT GAME BOARD */
-.board {
-  flex: 3;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    .btn{border:none;border-radius:16px;padding:14px 16px;font-weight:900;cursor:pointer;transition:.18s transform,.18s opacity}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    .btn-white{background:#fff;color:#112127}
+    .btn-main{background:linear-gradient(135deg,#5f8f89,#3f6f69);color:#fff}
+    .btn-blue{background:linear-gradient(135deg,#5f82a7,#476381);color:#fff}
+    .btn-rose{background:linear-gradient(135deg,#9f6171,#7a4c58);color:#fff}
+    .btn-teal{background:linear-gradient(135deg,#6d9891,#557a74);color:#fff}
+    .btn-green{background:linear-gradient(135deg,#5c847e,#466761);color:#fff}
+    .btn-small{padding:10px 12px;border-radius:14px;font-size:14px}
 
-/* IMAGE */
-.board img {
-  width: 80%;
-  max-height: 95%;
-  object-fit: contain;
-}
+    .game-layout{display:grid;grid-template-columns:1.72fr .96fr;gap:14px;min-height:calc(100vh - 28px)}
+    .left-col,.right-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
-/* PATH TILES */
-.tile {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background: #1f3a44;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  text-align: center;
-  padding: 4px;
-  transition: transform 0.2s;
-}
+    .topbar{border-radius:28px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .topbar-left{display:flex;gap:14px;align-items:center;min-width:0}
+    .topbar-title{font-size:clamp(30px,4vw,48px);font-weight:900;line-height:1}
+    .topbar-meta{font-size:12px;color:var(--muted)}
+    .chip-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .chip{padding:10px 14px;border-radius:999px;background:linear-gradient(135deg,#5c847e,#466761);font-size:13px;font-weight:900}
+    .chip.alt{background:linear-gradient(135deg,#728c88,#5c726e)}
+    .chip.ghost{background:rgba(255,255,255,.08)}
 
-.tile.active {
-  background: #00d4a3;
-  transform: scale(1.2);
-}
+    .board-panel{position:relative;flex:1;border-radius:28px;padding:10px}
+    .board-stage{position:relative;min-height:70vh;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,#5f8b86,#557a74);box-shadow:inset 0 0 70px rgba(0,0,0,.16)}
+    .board-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0}
+    .board-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,15,20,.03),rgba(8,15,20,.14));z-index:0}
+    .board-svg{position:absolute;inset:0;z-index:1}
+    .board-label{position:absolute;z-index:5;font-size:12px;letter-spacing:.28em;text-transform:uppercase;font-weight:900;color:rgba(255,255,255,.86)}
+    .board-label.finish{top:18px;left:46%}
+    .board-label.start{bottom:18px;left:20px}
+    .board-hint{position:absolute;z-index:5;right:16px;top:16px;background:rgba(2,6,23,.55);border:1px solid rgba(255,255,255,.1);padding:8px 12px;border-radius:999px;font-size:12px;color:#d8e5e4}
 
-/* RIGHT PANEL */
-.panel {
-  flex: 1;
-  background: #0b1f25;
-  padding: 20px;
-}
+    .space{position:absolute;transform:translate(-50%,-50%);border-radius:14px;border:1px solid rgba(255,255,255,.2);box-shadow:0 8px 18px rgba(0,0,0,.22);padding:6px 7px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;z-index:3;transition:transform .16s ease,box-shadow .16s ease}
+    .space:hover{transform:translate(-50%,-52%) scale(1.05)}
+    .space.normal{background:linear-gradient(180deg,rgba(71,85,105,.96),rgba(51,65,85,.96))}
+    .space.start{background:linear-gradient(135deg,var(--start),#13995f)}
+    .space.finish{background:linear-gradient(135deg,var(--finish),#8a2dd1)}
+    .space.safe{background:linear-gradient(135deg,var(--safe),#1d7368)}
+    .space.health{background:linear-gradient(135deg,var(--health),#1e6f8d)}
+    .space.risk{background:linear-gradient(135deg,var(--risk),#963948)}
+    .space.quarantine{background:linear-gradient(135deg,#c96b33,#953f1b)}
+    .space.chance{background:linear-gradient(135deg,var(--chance),#4b46a7)}
+    .space.energy{background:linear-gradient(135deg,var(--energy),#9a7a1d);color:#161616}
+    .space.surgery{background:linear-gradient(135deg,var(--surgery),#913f1b)}
+    .space-id{font-size:8px;line-height:1;font-weight:900;opacity:.82}
+    .space-name{font-size:9px;line-height:1.04;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .space-body{font-size:7px;line-height:1;opacity:.76;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .space-tokens{display:flex;gap:4px;flex-wrap:wrap;min-height:11px}
+    .token-pill{display:inline-flex;align-items:center;gap:3px;background:rgba(2,6,23,.9);border-radius:999px;padding:1px 5px;font-size:8px;font-weight:900;color:#fff}
+    .hover-tag{position:absolute;z-index:6;transform:translate(10px,-50%);background:#10b981;border:1px solid rgba(255,255,255,.58);border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900;box-shadow:0 8px 18px rgba(0,0,0,.22)}
 
-button {
-  width: 100%;
-  padding: 15px;
-  border: none;
-  border-radius: 12px;
-  background: #00bfa6;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
+    .panel{border-radius:26px;padding:16px}
+    .panel-title{font-size:22px;font-weight:900;margin:0 0 12px}
+    .turn-box{border-radius:20px;padding:16px;background:linear-gradient(135deg,#5f8f89,#3f6f69);box-shadow:0 14px 28px rgba(0,0,0,.2)}
+    .muted{color:var(--muted)}
+    .controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .mini-box{border-radius:18px;padding:12px;background:rgba(2,6,23,.34)}
+    .players-list,.leaderboard-list{display:flex;flex-direction:column;gap:10px;max-height:26vh;overflow:auto;padding-right:4px}
+    .player-card,.leader-card{border-radius:18px;padding:12px;background:rgba(2,6,23,.34);border:1px solid rgba(255,255,255,.08)}
+    .player-top{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+    .avatar{width:40px;height:40px;display:grid;place-items:center;border-radius:999px;background:linear-gradient(135deg,#6c8391,#556874);font-size:20px}
+    .name-input{flex:1;height:40px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;padding:0 12px;font-weight:700}
+    .name-input::placeholder{color:#8ea2ad}
+    .stats{display:flex;gap:6px;flex-wrap:wrap}
+    .badge{padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;background:#334155;display:inline-flex;align-items:center;gap:4px}
+    .badge.teal{background:#0f766e}
+    .badge.green{background:#15803d}
+    .badge.gray{background:#475569}
+    .badge.purple{background:#6d28d9}
+    .action-box{min-height:96px;border-radius:18px;padding:14px;background:rgba(2,6,23,.34);font-size:14px;color:#dfe8e8;line-height:1.42}
+    .feedback{margin-bottom:12px;border-radius:16px;padding:12px;font-size:14px;font-weight:900}
+    .feedback.good{background:rgba(16,185,129,.18);color:#d7fff4}
+    .feedback.bad{background:rgba(244,63,94,.18);color:#ffe4ea}
+    .leader-row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .leader-left{display:flex;gap:8px;align-items:center;min-width:0}
+    .leader-rank{font-size:12px;color:#9fb0b8}
+    .leader-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-button:hover {
-  background: #00d4b0;
-}
-</style>
+    .trivia-modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(2,6,23,.58);backdrop-filter:blur(8px);z-index:70;padding:16px}
+    .trivia-modal.show{display:grid}
+    .trivia-card{width:min(680px,100%);border-radius:28px;padding:18px}
+    .trivia-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+    .trivia-q{border-radius:18px;background:rgba(2,6,23,.34);padding:16px;line-height:1.4;margin-bottom:12px}
+    .trivia-grid{display:grid;gap:10px}
+    .pill-time{padding:8px 12px;border-radius:999px;background:#c6f6dd;color:#0b2d22;font-weight:900}
+    .footer-note{font-size:12px;color:#afc4c0}
+
+    @media (max-width: 1024px){
+      .lobby-wrap{grid-template-columns:1fr}
+      .game-layout{grid-template-columns:1fr}
+      .right-col{display:none}
+      .right-col.show{display:flex;position:fixed;inset:88px 8px 8px 8px;z-index:60;overflow:auto;background:#1a2928f2;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:8px;backdrop-filter:blur(16px)}
+      .board-stage{min-height:68vh}
+    }
+
+    @media (max-width: 700px){
+      .screen{padding:10px}
+      .space{width:64px!important;height:36px!important}
+      .space-id{font-size:7px}
+      .space-name{font-size:8px}
+      .space-body{font-size:6px}
+      .code-big .code{font-size:50px}
+      .title{font-size:34px}
+    }
+  </style>
 </head>
-
 <body>
-
-<div class="container">
-
-  <!-- BOARD -->
-  <div class="board" id="board">
-    <img src="./body%20anatomy%20mib.png" />
-  </div>
-
-  <!-- PANEL -->
-  <div class="panel">
-    <h2>Controls</h2>
-    <button onclick="rollDice()">🎲 Roll Dice</button>
-    <p id="pos">Position: 0</p>
-  </div>
-
-</div>
+<div id="app"></div>
 
 <script>
-const board = document.getElementById("board");
+  const SITE_DOMAIN = 'bodyanatomyboardgame.com';
+  const GAME_TITLE = 'Body Anatomy Board Game';
+  const SUBTITLE = 'Class MIB Group Project — Beverly, Stephanie, Lizeth';
+  const SCHOOL = 'North-West College • West Covina, CA • Medical Insurance Biller';
+  const ANATOMY_IMAGE_URL = './body%20anatomy%20mib.png';
+  const MOBILE_BREAKPOINT = 1024;
+  const MAX_PLAYERS = 10;
 
-let playerPos = 0;
-const totalTiles = 100;
+  const state = {
+    entered: false,
+    roomCode: randomRoomCode(),
+    joinCode: '',
+    players: createPlayers(2),
+    currentPlayerIndex: 0,
+    lastRoll: null,
+    lastCard: { text: 'Roll the dice to begin.' },
+    winner: null,
+    trivia: null,
+    timer: 30,
+    feedback: null,
+    hoverId: null,
+    soundOn: true,
+    movingPlayerId: null,
+    showMobilePanel: false
+  };
 
-/* CREATE SNAKE PATH */
-const path = [];
+  const TRIVIA_QUESTIONS = [
+    { q: 'What organ pumps blood through the body?', choices: ['Lung', 'Heart', 'Liver', 'Kidney'], a: 'Heart', reward: 3 },
+    { q: 'What do lungs help you do?', choices: ['Breathe', 'Digest', 'Think', 'Walk'], a: 'Breathe', reward: 2 },
+    { q: 'What is the largest organ of the body?', choices: ['Skin', 'Brain', 'Stomach', 'Heart'], a: 'Skin', reward: 3 },
+    { q: 'Which body part controls the nervous system?', choices: ['Heart', 'Brain', 'Colon', 'Pancreas'], a: 'Brain', reward: 3 },
+    { q: 'What connects muscles to bones?', choices: ['Veins', 'Ligaments', 'Tendons', 'Nerves'], a: 'Tendons', reward: 2 },
+    { q: 'True or False: The femur is a bone in the leg.', choices: ['True', 'False'], a: 'True', reward: 1 },
+    { q: 'True or False: The heart is part of the digestive system.', choices: ['True', 'False'], a: 'False', reward: 1 }
+  ];
 
-for (let i = 0; i < totalTiles; i++) {
-  let x = 10 + (i % 10) * 7;
-  let y = 90 - Math.floor(i / 10) * 8;
+  const ORGAN_POOL = ['Brain', 'Heart', 'Liver', 'Lungs', 'Stomach', 'Pancreas', 'Kidneys', 'Spleen', 'Bladder', 'Intestines'];
 
-  const tile = document.createElement("div");
-  tile.className = "tile";
-  tile.innerText = i === 0 ? "Start" : i === totalTiles - 1 ? "Brain 🧠" : i;
+  const HEALTH_CARDS = [
+    { text: 'Escape quarantine.', effect: p => ({ ...p, quarantined: 0 }) },
+    { text: 'Escape quarantine.', effect: p => ({ ...p, quarantined: 0 }) },
+    { text: 'Escape quarantine.', effect: p => ({ ...p, quarantined: 0 }) },
+    { text: 'Healthy diet. Roll again.', effect: p => ({ ...p, extraTurn: true }) },
+    { text: 'Healthy diet. Roll again.', effect: p => ({ ...p, extraTurn: true }) },
+    { text: 'You wash your hands. Move forward 3 spaces.', effect: p => ({ ...p, position: Math.min(99, p.position + 3) }) },
+    { text: 'You wash your hands. Move forward 3 spaces.', effect: p => ({ ...p, position: Math.min(99, p.position + 3) }) }
+  ];
 
-  tile.style.left = x + "%";
-  tile.style.top = y + "%";
+  const RISK_CARDS = [
+    { text: "Didn't cover cough. Go to quarantine.", effect: p => ({ ...p, quarantined: 1 }) },
+    { text: "Didn't cover cough. Go to quarantine.", effect: p => ({ ...p, quarantined: 1 }) },
+    { text: 'Poor hygiene. Move back 2.', effect: p => ({ ...p, position: Math.max(0, p.position - 2) }) }
+  ];
 
-  board.appendChild(tile);
-  path.push(tile);
-}
+  const CHANCE_CARDS = [
+    { text: 'Referral card. Move forward 2.', effect: p => ({ ...p, position: Math.min(99, p.position + 2) }) },
+    { text: 'Chance card: collect an organ card.', effect: p => ({ ...p }), collectOrgan: true },
+    { text: 'Chance card: collect an organ card.', effect: p => ({ ...p }), collectOrgan: true }
+  ];
 
-function rollDice() {
-  const roll = Math.floor(Math.random() * 6) + 1;
+  const ENERGY_CARDS = [
+    { text: 'Choose someone to take 5 steps back while you take 1 step forward.', effect: p => ({ ...p, position: Math.min(99, p.position + 1) }), attackBack: 5 },
+    { text: 'Move 1 step forward and the next person misses a turn.', effect: p => ({ ...p, position: Math.min(99, p.position + 1) }), nextMiss: true }
+  ];
 
-  path[playerPos].classList.remove("active");
+  const SURGERY_CARDS = [
+    { text: 'Surgery Card: Lose a turn.', effect: p => ({ ...p, skipped: 1 }) },
+    { text: 'Surgery Card: Lose a turn.', effect: p => ({ ...p, skipped: 1 }) }
+  ];
 
-  playerPos += roll;
-  if (playerPos >= totalTiles) {
-    alert("You reached the brain 🧠 YOU WIN!");
-    playerPos = 0;
+  const ANATOMY_TERMS = [
+    ['Heel','Feet'],['Toes','Feet'],['Metatarsals','Feet'],['Talus','Feet'],['Calcaneus','Feet'],
+    ['Achilles Tendon','Lower Leg'],['Tibia','Lower Leg'],['Fibula','Lower Leg'],['Patella','Knee'],['Knee Joint','Knee'],
+    ['Quadriceps','Upper Leg'],['Hamstrings','Upper Leg'],['Femur','Upper Leg'],['Hip Joint','Hip'],['Pelvis','Pelvis'],
+    ['Bladder','Pelvis'],['Uterus','Pelvis'],['Rectum','Digestive'],['Appendix','Digestive'],['Colon','Digestive'],
+    ['Small Intestine','Digestive'],['Gallbladder','Digestive'],['Liver','Digestive'],['Pancreas','Digestive'],['Spleen','Immune'],
+    ['Stomach','Digestive'],['Esophagus','Upper Body'],['Diaphragm','Thorax'],['Aorta','Thorax'],['Ribs','Thorax'],
+    ['Sternum','Thorax'],['Lungs','Thorax'],['Bronchi','Thorax'],['Trachea','Neck'],['Heart','Thorax'],
+    ['Clavicle','Shoulder'],['Scapula','Shoulder'],['Humerus','Arm'],['Biceps','Arm'],['Radius','Forearm'],
+    ['Ulna','Forearm'],['Thumb','Hand'],['Index Finger','Hand'],['Eyes','Head'],['Nasal Cavity','Head'],
+    ['Teeth','Head'],['Temporal Bone','Head'],['Frontal Bone','Head'],['Parietal Bone','Head'],['Brain Stem','Brain'],
+    ['Cerebellum','Brain'],['Frontal Lobe','Brain']
+  ];
+
+  const BODY_CENTERLINE = [
+    { y: 92, x: 49 },
+    { y: 85, x: 49 },
+    { y: 78, x: 49 },
+    { y: 71, x: 49 },
+    { y: 64, x: 49 },
+    { y: 57, x: 49 },
+    { y: 50, x: 49 },
+    { y: 43, x: 49 },
+    { y: 36, x: 49 },
+    { y: 29, x: 49 },
+    { y: 22, x: 49 }
+  ];
+
+  const BAND_SHAPES = [
+    { y: 92, left: 8, right: 90, count: 8 },
+    { y: 82, left: 12, right: 86, count: 7 },
+    { y: 72, left: 18, right: 82, count: 6 },
+    { y: 62, left: 12, right: 86, count: 7 },
+    { y: 52, left: 16, right: 82, count: 6 },
+    { y: 42, left: 18, right: 82, count: 6 },
+    { y: 32, left: 22, right: 78, count: 5 },
+    { y: 22, left: 26, right: 72, count: 5 }
+  ];
+
+  function randomRoomCode() {
+    return Math.random().toString(36).slice(2, 7).toUpperCase();
   }
 
-  path[playerPos].classList.add("active");
-  document.getElementById("pos").innerText = "Position: " + playerPos;
-}
-</script>
+  function createPlayers(count) {
+    return Array.from({ length: count }, (_, i) => ({
+      id: i + 1,
+      name: `Player ${i + 1}`,
+      position: 0,
+      shields: 0,
+      quarantined: 0,
+      skipped: 0,
+      extraTurn: false,
+      score: 0,
+      organs: []
+    }));
+  }
 
+  function getPlayerToken(index) {
+    const items = ['🩺','💉','💊','🩹','🌡️','✂️','🫁','🧠','🧴','🏥'];
+    return items[index] || '🏥';
+  }
+
+  function getPlayerName(player) {
+    return (player?.name || '').trim() || `Player ${player?.id ?? ''}`;
+  }
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function makeBand(y,left,right,count,reverse=false){
+    const xs = [];
+    if (count === 1) return [{x:(left+right)/2,y}];
+    for(let i=0;i<count;i+=1){
+      const t = i/(count-1);
+      xs.push({x: lerp(left,right,t), y});
+    }
+    return reverse ? xs.reverse() : xs;
+  }
+
+  function generateBoardSpaces(){
+    const spaces = [];
+    let id = 0;
+    let termIndex = 0;
+
+    spaces.push({ id: 0, name: 'Start', body: 'Feet', type: 'start', x: 6.5, y: 94, anchorX: 14, anchorY: 95 });
+    id += 1;
+
+    BAND_SHAPES.forEach((band, bandIndex) => {
+      const bandSpaces = makeBand(band.y, band.left, band.right, band.count, bandIndex % 2 === 1);
+      bandSpaces.forEach((point, pointIndex) => {
+        if (id >= 99) return;
+        const term = ANATOMY_TERMS[termIndex % ANATOMY_TERMS.length];
+        termIndex += 1;
+        const center = BODY_CENTERLINE.reduce((prev, cur) => Math.abs(cur.y - point.y) < Math.abs(prev.y - point.y) ? cur : prev, BODY_CENTERLINE[0]);
+        const offset = point.x < center.x ? -7 : point.x > center.x ? 7 : 0;
+        spaces.push({
+          id,
+          name: term[0],
+          body: term[1],
+          type: specialSpaceType(id),
+          x: point.x,
+          y: point.y,
+          anchorX: center.x + offset,
+          anchorY: point.y
+        });
+        id += 1;
+      });
+    });
+
+    while (id < 99) {
+      const y = 18 - ((98 - id) * 0.6);
+      const x = 49 + ((id % 2 === 0) ? -10 : 10);
+      const term = ANATOMY_TERMS[termIndex % ANATOMY_TERMS.length];
+      termIndex += 1;
+      spaces.push({
+        id,
+        name: term[0],
+        body: term[1],
+        type: specialSpaceType(id),
+        x,
+        y,
+        anchorX: 49,
+        anchorY: Math.max(10, y)
+      });
+      id += 1;
+    }
+
+    spaces.push({ id: 99, name: 'Brain', body: 'Finish', type: 'finish', x: 49, y: 9, anchorX: 49, anchorY: 12 });
+    return spaces;
+  }
+
+  function specialSpaceType(id){
+    const map = {
+      0:'start', 4:'safe', 8:'health', 12:'chance', 16:'risk', 20:'safe',
+      24:'health', 28:'quarantine', 32:'chance', 36:'energy', 40:'risk',
+      44:'safe', 48:'health', 52:'quarantine', 56:'surgery', 60:'chance',
+      64:'energy', 68:'risk', 72:'safe', 76:'health', 80:'chance',
+      84:'quarantine', 88:'surgery', 92:'safe', 96:'health', 99:'finish'
+    };
+    return map[id] || 'normal';
+  }
+
+  const SPACES = generateBoardSpaces();
+
+  function chooseRandomCard(cards){
+    return cards[Math.floor(Math.random() * cards.length)];
+  }
+
+  function getCardDeckByType(type){
+    if (type === 'health') return HEALTH_CARDS;
+    if (type === 'risk') return RISK_CARDS;
+    if (type === 'chance') return CHANCE_CARDS;
+    if (type === 'energy') return ENERGY_CARDS;
+    if (type === 'surgery') return SURGERY_CARDS;
+    return null;
+  }
+
+  function ensureAudioContext(){
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!window.__abgAudioCtx) window.__abgAudioCtx = new AudioCtx();
+    if (window.__abgAudioCtx.state === 'suspended') void window.__abgAudioCtx.resume();
+    return window.__abgAudioCtx;
+  }
+
+  function playTone(freq, start, duration, volume=.03, type='sine'){
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  }
+
+  function playDiceSound(){
+    if (!state.soundOn) return;
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.45, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    for (let i = 0; i < 5; i += 1) {
+      const source = ctx.createBufferSource();
+      const band = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      band.type = 'bandpass';
+      band.frequency.setValueAtTime(720 - i * 95, now + i * 0.05);
+      gain.gain.setValueAtTime(0.0001, now + i * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.06, now + i * 0.05 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.05 + 0.11);
+      source.connect(band);
+      band.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(now + i * 0.05);
+      source.stop(now + i * 0.05 + 0.12);
+    }
+  }
+
+  function playSuccessSound(){
+    if (!state.soundOn) return;
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    playTone(523, now, 0.14, 0.04);
+    playTone(659, now + 0.12, 0.16, 0.04);
+    playTone(784, now + 0.24, 0.18, 0.04);
+  }
+
+  function playFailSound(){
+    if (!state.soundOn) return;
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    playTone(220, now, 0.16, 0.04, 'sawtooth');
+    playTone(185, now + 0.12, 0.18, 0.04, 'sawtooth');
+  }
+
+  function startTrivia(){
+    state.trivia = TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)];
+    state.timer = 30;
+    state.feedback = null;
+    render();
+  }
+
+  function applyCardForType(type, player){
+    const deck = getCardDeckByType(type);
+    if (!deck) return { player, card: null, attackBack: 0, nextMiss: false, organAward: null };
+    const picked = chooseRandomCard(deck);
+    let updatedPlayer = picked.effect(player);
+    let organAward = null;
+    if (picked.collectOrgan) {
+      const available = ORGAN_POOL.filter(organ => !updatedPlayer.organs.includes(organ));
+      organAward = available.length ? available[Math.floor(Math.random() * available.length)] : ORGAN_POOL[Math.floor(Math.random() * ORGAN_POOL.length)];
+      updatedPlayer = { ...updatedPlayer, organs: [...updatedPlayer.organs, organAward] };
+    }
+    return { player: updatedPlayer, card: picked, attackBack: picked.attackBack || 0, nextMiss: !!picked.nextMiss, organAward };
+  }
+
+  function handleRoll(){
+    if (state.winner || state.trivia) return;
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (!currentPlayer) return;
+
+    playDiceSound();
+    state.feedback = null;
+
+    if (Math.random() < 0.24) {
+      startTrivia();
+      return;
+    }
+
+    const roll = Math.floor(Math.random() * 6) + 1;
+    state.lastRoll = roll;
+    const updated = [...state.players];
+    let player = { ...updated[state.currentPlayerIndex] };
+
+    if (player.skipped > 0) {
+      player.skipped -= 1;
+      updated[state.currentPlayerIndex] = player;
+      state.players = updated;
+      state.lastCard = { text: `${getPlayerName(player)} lost this turn.` };
+      state.currentPlayerIndex = (state.currentPlayerIndex + 1) % updated.length;
+      render();
+      return;
+    }
+
+    if (player.quarantined > 0) {
+      player.quarantined -= 1;
+      updated[state.currentPlayerIndex] = player;
+      state.players = updated;
+      state.lastCard = { text: `${getPlayerName(player)} is in quarantine and must stay 1 turn.` };
+      state.currentPlayerIndex = (state.currentPlayerIndex + 1) % updated.length;
+      render();
+      return;
+    }
+
+    state.movingPlayerId = player.id;
+    player.position = Math.min(99, player.position + roll);
+    const landed = SPACES[player.position];
+    let extraTurn = false;
+    let logText = `${getPlayerName(player)} landed on ${landed.name}.`;
+
+    if (landed.type === 'safe') {
+      player.shields += 1;
+      player.score += 1;
+      logText = `${getPlayerName(player)} reached a safe point and gained 1 shield.`;
+    }
+
+    if (landed.type === 'quarantine') {
+      player.quarantined = 1;
+      logText = `${getPlayerName(player)} landed on quarantine: stay 1 turn.`;
+    }
+
+    if (['health','risk','chance','energy','surgery'].includes(landed.type)) {
+      const result = applyCardForType(landed.type, player);
+      player = result.player;
+      extraTurn = !!player.extraTurn;
+      player.extraTurn = false;
+
+      if (result.attackBack > 0 && state.players.length > 1) {
+        const targetIndex = (state.currentPlayerIndex + 1) % updated.length;
+        const target = { ...updated[targetIndex] };
+        target.position = Math.max(0, target.position - result.attackBack);
+        updated[targetIndex] = target;
+        logText = `${result.card?.text || 'Energy card.'} ${getPlayerName(target)} goes back ${result.attackBack} spaces.`;
+      } else if (result.nextMiss && state.players.length > 1) {
+        const targetIndex = (state.currentPlayerIndex + 1) % updated.length;
+        const target = { ...updated[targetIndex] };
+        target.skipped += 1;
+        updated[targetIndex] = target;
+        logText = `${result.card?.text || 'Energy card.'} ${getPlayerName(target)} misses the next turn.`;
+      } else if (result.organAward) {
+        logText = `${result.card?.text || 'Chance card.'} ${getPlayerName(player)} collected the ${result.organAward} organ card.`;
+      } else if (result.card) {
+        logText = result.card.text;
+      }
+    }
+
+    if (player.position >= 99) {
+      player.position = 99;
+      state.winner = player.name;
+      logText = `${getPlayerName(player)} reached the brain. Quick recovery!`;
+    }
+
+    updated[state.currentPlayerIndex] = player;
+    state.players = updated;
+    state.lastCard = { text: logText };
+
+    setTimeout(() => {
+      state.movingPlayerId = null;
+      render();
+    }, 650);
+
+    if (!extraTurn && player.position < 99) state.currentPlayerIndex = (state.currentPlayerIndex + 1) % updated.length;
+    render();
+  }
+
+  function submitTrivia(answer){
+    if (!state.trivia) return;
+    const correct = answer === state.trivia.a;
+    const reward = state.trivia.reward || 2;
+    const updated = [...state.players];
+    const player = { ...updated[state.currentPlayerIndex] };
+
+    if (correct) {
+      player.position = Math.min(99, player.position + reward);
+      player.score += reward;
+    }
+
+    if (player.position >= 99) {
+      player.position = 99;
+      state.winner = player.name;
+    }
+
+    updated[state.currentPlayerIndex] = player;
+    state.players = updated;
+    state.feedback = {
+      ok: correct,
+      text: correct ? `Correct! Move forward ${reward} ${reward === 1 ? 'space' : 'spaces'}.` : 'Wrong answer. Stay in the same spot.'
+    };
+    state.lastCard = {
+      text: correct
+        ? `${getPlayerName(player)} answered correctly and moved forward ${reward} ${reward === 1 ? 'space' : 'spaces'}.`
+        : `${getPlayerName(player)} answered incorrectly and stayed in place.`
+    };
+
+    if (correct) playSuccessSound(); else playFailSound();
+
+    state.trivia = null;
+    state.timer = 30;
+    render();
+  }
+
+  function resetGame(){
+    state.players = createPlayers(2);
+    state.currentPlayerIndex = 0;
+    state.lastRoll = null;
+    state.lastCard = { text: 'Roll the dice to begin.' };
+    state.winner = null;
+    state.trivia = null;
+    state.feedback = null;
+    state.hoverId = null;
+    state.movingPlayerId = null;
+    render();
+  }
+
+  function enterRoom(){
+    if (state.joinCode.trim()) state.roomCode = state.joinCode.trim().toUpperCase();
+    state.entered = true;
+    render();
+  }
+
+  async function copyShareLink(){
+    const url = `${location.origin}?room=${state.roomCode}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      state.lastCard = { text: 'Room link copied.' };
+    } catch {
+      state.lastCard = { text: 'Could not copy automatically.' };
+    }
+    render();
+  }
+
+  function updatePlayerName(id, value){
+    state.players = state.players.map(player => player.id === id ? { ...player, name: value.slice(0, 18) } : player);
+    render();
+  }
+
+  function addPlayer(){
+    if (state.players.length >= MAX_PLAYERS) return;
+    state.players = [...state.players, {
+      id: state.players.length + 1,
+      name: `Player ${state.players.length + 1}`,
+      position: 0,
+      shields: 0,
+      quarantined: 0,
+      skipped: 0,
+      extraTurn: false,
+      score: 0,
+      organs: []
+    }];
+    render();
+  }
+
+  function togglePanel(){
+    state.showMobilePanel = !state.showMobilePanel;
+    render();
+  }
+
+  function handleBackHome(){
+    state.entered = false;
+    state.showMobilePanel = false;
+    render();
+  }
+
+  function sortedPlayers(){
+    return [...state.players].sort((a,b) => b.score - a.score || b.position - a.position);
+  }
+
+  function escapeHtml(value){
+    return String(value)
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#39;');
+  }
+
+  function boardMarkup(){
+    const connectors = SPACES.slice(0,-1).map((space, index) =>
+      `<line x1="${space.x}" y1="${space.y}" x2="${SPACES[index+1].x}" y2="${SPACES[index+1].y}" stroke="rgba(255,255,255,.28)" stroke-width=".8" />`
+    ).join('');
+
+    const attachLines = SPACES.map(space =>
+      `<line x1="${space.x}" y1="${space.y}" x2="${space.anchorX}" y2="${space.anchorY}" stroke="rgba(255,255,255,.12)" stroke-width=".45" />`
+    ).join('');
+
+    const hoverSpace = state.hoverId !== null ? SPACES.find(space => space.id === state.hoverId) : null;
+
+    const hoverMarkup = hoverSpace ? `
+      <svg class="board-svg" viewBox="0 0 100 100">
+        <line x1="${hoverSpace.x}" y1="${hoverSpace.y}" x2="${hoverSpace.anchorX}" y2="${hoverSpace.anchorY}" stroke="rgba(16,185,129,.85)" stroke-width=".8" />
+        <circle cx="${hoverSpace.anchorX}" cy="${hoverSpace.anchorY}" r="3.2" fill="rgba(16,185,129,.3)" />
+        <circle cx="${hoverSpace.anchorX}" cy="${hoverSpace.anchorY}" r="5.2" fill="none" stroke="rgba(16,185,129,.8)" stroke-width=".55" />
+      </svg>
+      <div class="hover-tag" style="left:${hoverSpace.anchorX}%;top:${hoverSpace.anchorY}%;">${hoverSpace.name}</div>
+    ` : '';
+
+    const width = window.innerWidth < 700 ? 64 : window.innerWidth < 1025 ? 72 : 82;
+    const height = window.innerWidth < 700 ? 36 : window.innerWidth < 1025 ? 40 : 46;
+
+    const spacesMarkup = SPACES.map(space => {
+      const onSpace = state.players.filter(player => player.position === space.id);
+      return `
+        <div
+          class="space ${space.type || 'normal'}"
+          style="left:${space.x}%;top:${space.y}%;width:${width}px;height:${height}px"
+          onmouseenter="setHover(${space.id})"
+          onmouseleave="clearHover()"
+        >
+          <div class="space-id">#${space.id}</div>
+          <div class="space-name">${escapeHtml(space.name)}</div>
+          <div class="space-body">${escapeHtml(space.body)}</div>
+          <div class="space-tokens">
+            ${onSpace.map(player => `<span class="token-pill" style="${state.movingPlayerId === player.id ? 'transform:scale(1.15);transition:.18s' : ''}">${getPlayerToken(player.id - 1)}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="board-stage">
+        <img class="board-image" src="${ANATOMY_IMAGE_URL}" alt="anatomy board" />
+        <svg class="board-svg" viewBox="0 0 100 100" preserveAspectRatio="none">${connectors}${attachLines}</svg>
+        ${hoverMarkup}
+        <div class="board-overlay"></div>
+        <div class="board-label finish">Finish</div>
+        <div class="board-label start">Start</div>
+        <div class="board-hint">Hover squares to highlight body area</div>
+        ${spacesMarkup}
+      </div>
+    `;
+  }
+
+  function lobbyScreen(){
+    return `
+      <div class="screen">
+        <div class="lobby-wrap">
+          <div class="lobby-left glass">
+            <div class="brand">
+              <div class="logo"><span>🫀</span></div>
+              <div>
+                <div class="domain">${SITE_DOMAIN}</div>
+                <div class="title">${GAME_TITLE}</div>
+                <div class="subtitle">${SUBTITLE}</div>
+                <div class="subtitle">${SCHOOL}</div>
+              </div>
+            </div>
+
+            <div class="code-box">
+              <div style="text-align:center;font-size:28px;font-weight:900">Join at ${SITE_DOMAIN}</div>
+              <div style="text-align:center;font-size:18px;color:#63747e;margin-top:8px">with your anatomy room code</div>
+              <div class="code-big">
+                <div class="small">Anatomy Room Code</div>
+                <div class="code">${state.roomCode}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lobby-right glass">
+            <div>
+              <div class="lobby-tag">Lobby</div>
+              <div class="lobby-title">Waiting for participants</div>
+              <div class="lobby-copy">Roll the dice, land on anatomy squares, collect good or bad cards, answer trivia, and race to the brain for a quick recovery win.</div>
+            </div>
+
+            <div class="entry-card">
+              <div class="entry-label">Enter Code</div>
+              <input class="entry-input" placeholder="ENTER CODE" value="${escapeHtml(state.joinCode)}" oninput="state.joinCode=this.value.toUpperCase()" />
+            </div>
+
+            <div class="entry-actions">
+              <button class="btn btn-white" onclick="makeNewCode()">New Code</button>
+              <button class="btn btn-main" onclick="enterRoom()">Start Room</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function gameScreen(){
+    const currentPlayer = state.players[state.currentPlayerIndex] || state.players[0] || null;
+    const rightClasses = `right-col ${state.showMobilePanel ? 'show' : ''}`;
+
+    return `
+      <div class="screen">
+        <div class="game-layout">
+          <div class="left-col">
+            <div class="topbar glass">
+              <div class="topbar-left">
+                <div class="logo" style="width:56px;height:56px;border-radius:18px"><span>🫀</span></div>
+                <div style="min-width:0">
+                  <div class="domain" style="color:#8be4d8">${SITE_DOMAIN}</div>
+                  <div class="topbar-meta">${SUBTITLE}</div>
+                  <div class="topbar-meta">North-West College • West Covina, CA</div>
+                  <div class="topbar-title">${GAME_TITLE}</div>
+                </div>
+              </div>
+
+              <div class="chip-row">
+                <div class="chip">Room: ${state.roomCode}</div>
+                <div class="chip alt">${state.players.length} Joined</div>
+                <button class="btn btn-small" style="background:rgba(255,255,255,.08);color:#fff" onclick="togglePanelMobile()">${state.showMobilePanel ? 'Close Panel' : 'Panel'}</button>
+                <button class="btn btn-small" style="background:rgba(255,255,255,.08);color:#fff" onclick="handleBackHome()">Back</button>
+              </div>
+            </div>
+
+            <div class="board-panel glass">
+              ${boardMarkup()}
+            </div>
+          </div>
+
+          <div class="${rightClasses}">
+            <div class="panel glass">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">
+                <div class="panel-title" style="margin:0">Current Turn</div>
+                <button class="btn btn-small" style="background:rgba(255,255,255,.08);color:#fff" onclick="toggleSound()">${state.soundOn ? '🔊' : '🔇'}</button>
+              </div>
+              <div class="turn-box">
+                <div class="muted" style="font-size:14px">Current Player • Reach the brain to win</div>
+                <div style="font-size:32px;font-weight:900;line-height:1.05;margin-top:6px">${state.winner ? `${escapeHtml(state.winner)} wins!` : escapeHtml(getPlayerName(currentPlayer))}</div>
+                <div class="muted" style="font-size:14px;margin-top:10px">Last Roll: ${state.lastRoll ?? '-'}</div>
+              </div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-title">Controls</div>
+              <div class="controls-grid">
+                <button class="btn btn-teal" onclick="handleRoll()" ${state.winner || state.trivia ? 'disabled' : ''}>🎲 Roll</button>
+                <button class="btn btn-rose" onclick="resetGame()">↻ Reset</button>
+                <button class="btn btn-blue" onclick="copyShareLink()">⤴ Share</button>
+                <button class="btn btn-green" onclick="newCodeInGame()">New Code</button>
+              </div>
+              <div class="mini-box" style="margin-top:12px;font-size:12px;color:#b9cbd1">Room link: ${location.origin}?room=${state.roomCode}</div>
+            </div>
+
+            <div class="panel glass">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+                <div class="panel-title">Players</div>
+                <button class="btn btn-small btn-green" onclick="addPlayer()" ${state.players.length >= MAX_PLAYERS ? 'disabled' : ''}>＋ Add</button>
+              </div>
+              <div class="players-list">
+                ${state.players.map(player => `
+                  <div class="player-card">
+                    <div class="player-top">
+                      <div class="avatar">${getPlayerToken(player.id - 1)}</div>
+                      <input class="name-input" value="${escapeHtml(player.name)}" placeholder="Player ${player.id}" oninput="updatePlayerNameById(${player.id}, this.value)" />
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+                      <div style="font-size:12px;color:#c9d6d8">${escapeHtml(SPACES[player.position].name)}</div>
+                      <div class="stats">
+                        <span class="badge teal">${player.shields} shield</span>
+                        <span class="badge gray">${player.score} pts</span>
+                        <span class="badge green">${player.organs.length} organs</span>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-title">Latest Action</div>
+              ${state.feedback ? `<div class="feedback ${state.feedback.ok ? 'good' : 'bad'}">${escapeHtml(state.feedback.text)}</div>` : ''}
+              <div class="action-box">${escapeHtml(state.lastCard?.text || 'Roll the dice to begin.')}</div>
+            </div>
+
+            <div class="panel glass">
+              <div class="panel-title">Leaderboard</div>
+              <div class="leaderboard-list">
+                ${sortedPlayers().map((player, index) => `
+                  <div class="leader-card">
+                    <div class="leader-row">
+                      <div class="leader-left">
+                        <div class="leader-rank">#${index + 1}</div>
+                        <div>${getPlayerToken(player.id - 1)}</div>
+                        <div class="leader-name">${escapeHtml(getPlayerName(player))}</div>
+                      </div>
+                      <div style="text-align:right;font-size:12px;color:#bdcfd0">
+                        <div>${player.score} pts</div>
+                        <div>${player.organs.length} organs</div>
+                        <div>${escapeHtml(SPACES[player.position].name)}</div>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="trivia-modal ${state.trivia ? 'show' : ''}">
+          ${state.trivia ? `
+            <div class="trivia-card glass">
+              <div class="trivia-top">
+                <div style="font-size:24px;font-weight:900">✨ Trivia</div>
+                <div class="pill-time">${state.timer}s</div>
+              </div>
+              <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
+              <div class="trivia-grid">
+                ${state.trivia.choices.map((choice, index) => {
+                  const classes = ['btn-rose','btn-blue','btn-white','btn-green'];
+                  return `<button class="btn ${classes[index] || 'btn-teal'}" onclick="submitTriviaAnswer(${JSON.stringify(choice)})">${escapeHtml(choice)}</button>`;
+                }).join('')}
+              </div>
+              <div class="footer-note" style="margin-top:12px">Answer correctly to move forward.</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    document.getElementById('app').innerHTML = state.entered ? gameScreen() : lobbyScreen();
+  }
+
+  function tickTrivia(){
+    if (!state.trivia) return;
+    state.timer -= 1;
+    if (state.timer <= 0) {
+      state.lastCard = { text: 'Time is up. No trivia bonus.' };
+      state.trivia = null;
+      state.timer = 30;
+    }
+    render();
+  }
+
+  setInterval(tickTrivia, 1000);
+
+  window.enterRoom = enterRoom;
+  window.handleRoll = handleRoll;
+  window.resetGame = resetGame;
+  window.copyShareLink = copyShareLink;
+  window.toggleSound = () => { state.soundOn = !state.soundOn; render(); };
+  window.togglePanelMobile = togglePanel;
+  window.handleBackHome = handleBackHome;
+  window.newCodeInGame = () => { state.roomCode = randomRoomCode(); render(); };
+  window.makeNewCode = () => { const code = randomRoomCode(); state.joinCode = code; state.roomCode = code; render(); };
+  window.addPlayer = addPlayer;
+  window.updatePlayerNameById = updatePlayerName;
+  window.setHover = id => { state.hoverId = id; render(); };
+  window.clearHover = () => { state.hoverId = null; render(); };
+  window.submitTriviaAnswer = submitTrivia;
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= MOBILE_BREAKPOINT && state.showMobilePanel) {
+      state.showMobilePanel = false;
+      render();
+    }
+  });
+
+  render();
+</script>
 </body>
 </html>
