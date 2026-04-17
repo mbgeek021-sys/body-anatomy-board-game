@@ -162,10 +162,32 @@
 </head>
 <body>
 <div id="app"></div>
-<script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 const SITE_DOMAIN='bodyanatomyboardgame.com',GAME_TITLE='Body Anatomy Board Game',SUBTITLE='Class MIB Group Project — Beverly, Stephanie, Lizeth',SCHOOL='North-West College • West Covina, CA • Medical Insurance Biller',ANATOMY_IMAGE_URL='./body%20anatomy%20mib.png',MAX_PLAYERS=10;
-const SYNC_CONFIG={provider:'supabase',url:'',anonKey:'',enabled:false};
-const state={entered:false,roomCode:randomRoomCode(),joinCode:'',players:createPlayers(2),currentPlayerIndex:0,lastRoll:null,lastCard:{text:'Roll the dice to begin.'},winner:null,trivia:null,timer:30,feedback:null,hoverId:null,soundOn:true,movingPlayerId:null,isRolling:false};
+
+const SYNC_CONFIG={
+  url:'PASTE_YOUR_SUPABASE_URL',
+  anonKey:'PASTE_YOUR_SUPABASE_ANON_KEY'
+}
+
+const STORAGE_KEYS={
+  clientId:'anatomy-board-client-id',
+  playerName:'anatomy-board-player-name'
+}
+
+const clientId=localStorage.getItem(STORAGE_KEYS.clientId)||crypto.randomUUID()
+localStorage.setItem(STORAGE_KEYS.clientId,clientId)
+
+let supabase=null
+let roomChannel=null
+let suppressBroadcast=false
+let pendingNameSave=null
+let isApplyingRemoteState=false
+
+const state={entered:false,roomCode:randomRoomCode(),joinCode:'',players:createPlayers(1),currentPlayerIndex:0,lastRoll:null,lastCard:{text:'Roll the dice to begin.'},winner:null,trivia:null,timer:30,feedback:null,hoverId:null,soundOn:true,movingPlayerId:null,isRolling:false,isOnline:false,onlineCount:1,myPlayerId:1,connectionLabel:'Offline demo mode'};
+
 const TRIVIA_QUESTIONS=[{q:'What organ pumps blood through the body?',choices:['Lung','Heart','Liver','Kidney'],a:'Heart',reward:3},{q:'What do lungs help you do?',choices:['Breathe','Digest','Think','Walk'],a:'Breathe',reward:2},{q:'What is the largest organ of the body?',choices:['Skin','Brain','Stomach','Heart'],a:'Skin',reward:3},{q:'Which body part controls the nervous system?',choices:['Heart','Brain','Colon','Pancreas'],a:'Brain',reward:3},{q:'What connects muscles to bones?',choices:['Veins','Ligaments','Tendons','Nerves'],a:'Tendons',reward:2},{q:'True or False: The femur is a bone in the leg.',choices:['True','False'],a:'True',reward:1},{q:'True or False: The heart is part of the digestive system.',choices:['True','False'],a:'False',reward:1}];
 const ORGAN_POOL=['Brain','Heart','Liver','Lungs','Stomach','Pancreas','Kidneys','Spleen','Bladder','Intestines'];
 const HEALTH_CARDS=[{text:'Escape quarantine.',effect:p=>({...p,quarantined:0})},{text:'Healthy diet. Roll again.',effect:p=>({...p,extraTurn:true})},{text:'You wash your hands. Move forward 3 spaces.',effect:p=>({...p,position:Math.min(SPACES.length-1,p.position+3)})}];
@@ -175,8 +197,9 @@ const ENERGY_CARDS=[{text:'Choose someone to take 5 steps back while you take 1 
 const SURGERY_CARDS=[{text:'Surgery Card: Lose a turn.',effect:p=>({...p,skipped:1})}];
 const ANATOMY_TERMS=[['Heel','Feet'],['Toes','Feet'],['Metatarsals','Feet'],['Talus','Feet'],['Calcaneus','Feet'],['Achilles Tendon','Lower Leg'],['Tibia','Lower Leg'],['Fibula','Lower Leg'],['Patella','Knee'],['Knee Joint','Knee'],['Quadriceps','Upper Leg'],['Hamstrings','Upper Leg'],['Femur','Upper Leg'],['Hip Joint','Hip'],['Pelvis','Pelvis'],['Bladder','Pelvis'],['Uterus','Pelvis'],['Rectum','Digestive'],['Appendix','Digestive'],['Colon','Digestive'],['Small Intestine','Digestive'],['Gallbladder','Digestive'],['Liver','Digestive'],['Pancreas','Digestive'],['Spleen','Immune'],['Stomach','Digestive'],['Esophagus','Upper Body'],['Diaphragm','Thorax'],['Aorta','Thorax'],['Ribs','Thorax'],['Sternum','Thorax'],['Lungs','Thorax'],['Bronchi','Thorax'],['Trachea','Neck'],['Heart','Thorax'],['Clavicle','Shoulder'],['Scapula','Shoulder'],['Humerus','Arm'],['Biceps','Arm'],['Radius','Forearm'],['Ulna','Forearm'],['Thumb','Hand'],['Index Finger','Hand'],['Eyes','Head'],['Nasal Cavity','Head'],['Teeth','Head'],['Temporal Bone','Head'],['Frontal Bone','Head'],['Parietal Bone','Head'],['Brain Stem','Brain'],['Cerebellum','Brain'],['Frontal Lobe','Brain']];
 const PATH_POINTS=[[6,94],[16,94],[28,94],[40,94],[52,94],[64,94],[76,94],[88,94],[88,80],[76,80],[64,80],[52,80],[40,80],[28,80],[16,80],[16,66],[28,66],[40,66],[52,66],[64,66],[76,66],[88,66],[88,52],[76,52],[64,52],[52,52],[40,52],[28,52],[16,52],[16,38],[28,38],[40,38],[52,38],[64,38],[76,38],[88,38],[88,24],[76,24],[64,24],[52,24],[40,24],[28,24],[16,24],[16,12],[28,12],[40,12],[52,12],[64,12],[76,12],[88,12]];
+
 function randomRoomCode(){return Math.random().toString(36).slice(2,7).toUpperCase()}
-function createPlayers(count){return Array.from({length:count},(_,i)=>({id:i+1,name:`Player ${i+1}`,position:0,shields:0,quarantined:0,skipped:0,extraTurn:false,score:0,organs:[]}))}
+function createPlayers(count){const savedName=localStorage.getItem(STORAGE_KEYS.playerName)||'Player 1';return Array.from({length:count},(_,i)=>({id:i+1,name:i===0?savedName:`Player ${i+1}`,position:0,shields:0,quarantined:0,skipped:0,extraTurn:false,score:0,organs:[],ownerId:i===0?clientId:null}))}
 function getPlayerToken(index){const items=['🩺','💉','💊','🩹','🌡️','✂️','🫁','🧠','🧴','🏥'];return items[index]||'🏥'}
 function getPlayerName(player){return(player?.name||'').trim()||`Player ${player?.id??''}`}
 function specialSpaceType(id){const map={0:'start',4:'safe',8:'health',12:'chance',16:'risk',20:'safe',24:'health',28:'quarantine',32:'chance',36:'energy',40:'risk',44:'safe',48:'health'};return map[id]||'normal'}
@@ -190,25 +213,153 @@ function playTone(freq,start,duration,volume=.03,type='sine'){const ctx=ensureAu
 function playDiceSound(){const ctx=ensureAudioContext();if(!ctx)return;const now=ctx.currentTime,buffer=ctx.createBuffer(1,ctx.sampleRate*0.45,ctx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i+=1)data[i]=(Math.random()*2-1)*(1-i/data.length);for(let i=0;i<5;i+=1){const source=ctx.createBufferSource(),band=ctx.createBiquadFilter(),gain=ctx.createGain();source.buffer=buffer;band.type='bandpass';band.frequency.setValueAtTime(720-i*95,now+i*0.05);gain.gain.setValueAtTime(0.0001,now+i*0.05);gain.gain.exponentialRampToValueAtTime(0.06,now+i*0.05+0.01);gain.gain.exponentialRampToValueAtTime(0.0001,now+i*0.05+0.11);source.connect(band);band.connect(gain);gain.connect(ctx.destination);source.start(now+i*0.05);source.stop(now+i*0.05+0.12)}}
 function playSuccessSound(){const ctx=ensureAudioContext();if(!ctx)return;const now=ctx.currentTime;playTone(523,now,.14,.04);playTone(659,now+.12,.16,.04);playTone(784,now+.24,.18,.04)}
 function playFailSound(){const ctx=ensureAudioContext();if(!ctx)return;const now=ctx.currentTime;playTone(220,now,.16,.04,'sawtooth');playTone(185,now+.12,.18,.04,'sawtooth')}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
+function connectSupabase(){
+  if(!SYNC_CONFIG.url||!SYNC_CONFIG.anonKey||SYNC_CONFIG.url.includes('PASTE_')||SYNC_CONFIG.anonKey.includes('PASTE_')){state.isOnline=false;state.connectionLabel='Offline demo mode';return}
+  supabase=createClient(SYNC_CONFIG.url,SYNC_CONFIG.anonKey)
+  state.connectionLabel='Online ready'
+}
+
+function serializeState(){
+  return {players:state.players,currentPlayerIndex:state.currentPlayerIndex,lastRoll:state.lastRoll,lastCard:state.lastCard,winner:state.winner,feedback:state.feedback,roomCode:state.roomCode}
+}
+
+function normalizePlayers(players){
+  return players.map((player,index)=>({
+    id:index+1,
+    name:player.name,
+    position:player.position??0,
+    shields:player.shields??0,
+    quarantined:player.quarantined??0,
+    skipped:player.skipped??0,
+    extraTurn:false,
+    score:player.score??0,
+    organs:Array.isArray(player.organs)?player.organs:[],
+    ownerId:player.ownerId??null
+  }))
+}
+
+function applySerializedState(nextState){
+  const incomingPlayers=Array.isArray(nextState.players)?normalizePlayers(nextState.players):state.players
+  state.players=incomingPlayers
+  state.currentPlayerIndex=Math.min(nextState.currentPlayerIndex??0, Math.max(0, incomingPlayers.length-1))
+  state.lastRoll=nextState.lastRoll??null
+  state.lastCard=nextState.lastCard??{text:'Roll the dice to begin.'}
+  state.winner=nextState.winner??null
+  state.feedback=nextState.feedback??null
+  const mine=incomingPlayers.find(player=>player.ownerId===clientId)
+  state.myPlayerId=mine?mine.id:1
+}
+
+function getPresenceClients(){
+  if(!roomChannel)return []
+  const presence=roomChannel.presenceState()
+  return Object.values(presence).flatMap(entry=>entry).filter(Boolean)
+}
+
+function reconcilePlayersFromPresence(){
+  const metas=getPresenceClients()
+  const byOwner=new Map(state.players.map(player=>[player.ownerId,player]))
+  const nextPlayers=[]
+  for(const meta of metas){
+    const ownerId=meta.clientId
+    let player=byOwner.get(ownerId)
+    if(!player){
+      player={id:0,name:meta.name||`Player ${nextPlayers.length+1}`,position:0,shields:0,quarantined:0,skipped:0,extraTurn:false,score:0,organs:[],ownerId}
+    }
+    player={...player,name:meta.name||player.name,ownerId}
+    nextPlayers.push(player)
+  }
+  if(nextPlayers.length===0){
+    nextPlayers.push(...state.players)
+  }
+  state.players=normalizePlayers(nextPlayers)
+  const mine=state.players.find(player=>player.ownerId===clientId)
+  state.myPlayerId=mine?mine.id:1
+  state.onlineCount=state.players.length
+  if(state.currentPlayerIndex>=state.players.length) state.currentPlayerIndex=0
+}
+
+async function updatePresenceName(name){
+  if(roomChannel){
+    await roomChannel.track({clientId,name,roomCode:state.roomCode})
+  }
+}
+
+async function joinRoomChannel(){
+  if(!supabase||!state.entered)return
+  if(roomChannel){await roomChannel.unsubscribe();roomChannel=null}
+  const topic=`room:${state.roomCode}`
+  roomChannel=supabase.channel(topic,{config:{broadcast:{self:false},presence:{key:clientId}}})
+  roomChannel
+    .on('broadcast',{event:'state-sync'},payload=>{
+      if(!payload?.payload||payload.payload.sender===clientId)return
+      suppressBroadcast=true
+      isApplyingRemoteState=true
+      applySerializedState(payload.payload.state)
+      state.isOnline=true
+      state.connectionLabel='Live sync connected'
+      suppressBroadcast=false
+      isApplyingRemoteState=false
+      render()
+    })
+    .on('presence',{event:'sync'},async ()=>{
+      reconcilePlayersFromPresence()
+      state.isOnline=true
+      state.connectionLabel='Live sync connected'
+      render()
+      await broadcastState()
+    })
+  await roomChannel.subscribe(async status=>{
+    if(status==='SUBSCRIBED'){
+      await roomChannel.track({clientId,name:localStorage.getItem(STORAGE_KEYS.playerName)||'Player 1',roomCode:state.roomCode})
+      state.isOnline=true
+      state.connectionLabel='Live sync connected'
+      render()
+    }
+  })
+}
+
+async function broadcastState(force=false){
+  if(!roomChannel||suppressBroadcast||isApplyingRemoteState)return
+  const payload={sender:clientId,state:serializeState()}
+  try{
+    await roomChannel.send({type:'broadcast',event:'state-sync',payload})
+    if(force)state.connectionLabel='Live sync connected'
+  }catch(e){console.error(e)}
+}
+
+function saveNameQuietly(id,value){
+  state.players=state.players.map(player=>player.id===id?{...player,name:value.slice(0,18)}:player)
+  if(id===state.myPlayerId)localStorage.setItem(STORAGE_KEYS.playerName,value.slice(0,18))
+}
+
+async function commitNameChange(id,value){
+  const nextValue=value.slice(0,18)
+  saveNameQuietly(id,nextValue)
+  if(id===state.myPlayerId){
+    await updatePresenceName(nextValue)
+  }
+  await broadcastState()
+}
+
 function startTrivia(){state.trivia=TRIVIA_QUESTIONS[Math.floor(Math.random()*TRIVIA_QUESTIONS.length)];state.timer=30;state.feedback=null;render()}
 function applyCardForType(type,player){const deck=getCardDeckByType(type);if(!deck)return{player,card:null,attackBack:0,nextMiss:false,organAward:null};const picked=chooseRandomCard(deck);let updatedPlayer=picked.effect(player),organAward=null;if(picked.collectOrgan){const available=ORGAN_POOL.filter(organ=>!updatedPlayer.organs.includes(organ));organAward=available.length?available[Math.floor(Math.random()*available.length)]:ORGAN_POOL[Math.floor(Math.random()*ORGAN_POOL.length)];updatedPlayer={...updatedPlayer,organs:[...updatedPlayer.organs,organAward]}}return{player:updatedPlayer,card:picked,attackBack:picked.attackBack||0,nextMiss:!!picked.nextMiss,organAward}}
-function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
-async function handleRoll(){if(state.winner||state.trivia||state.isRolling)return;const currentPlayer=state.players[state.currentPlayerIndex];if(!currentPlayer)return;playDiceSound();state.feedback=null;state.isRolling=true;if(Math.random()<0.24){state.isRolling=false;startTrivia();return}const roll=Math.floor(Math.random()*6)+1;state.lastRoll=roll;const updated=[...state.players];let player={...updated[state.currentPlayerIndex]};if(player.skipped>0){player.skipped-=1;updated[state.currentPlayerIndex]=player;state.players=updated;state.lastCard={text:`${getPlayerName(player)} lost this turn.`};state.currentPlayerIndex=(state.currentPlayerIndex+1)%updated.length;state.isRolling=false;render();return}if(player.quarantined>0){player.quarantined-=1;updated[state.currentPlayerIndex]=player;state.players=updated;state.lastCard={text:`${getPlayerName(player)} is in quarantine and must stay 1 turn.`};state.currentPlayerIndex=(state.currentPlayerIndex+1)%updated.length;state.isRolling=false;render();return}state.movingPlayerId=player.id;render();for(let step=0;step<roll;step+=1){player.position=Math.min(SPACES.length-1,player.position+1);updated[state.currentPlayerIndex]=player;state.players=updated;render();await sleep(180);if(player.position>=SPACES.length-1)break}const landed=SPACES[player.position];let extraTurn=false,logText=`${getPlayerName(player)} landed on ${landed.name}.`;if(landed.type==='safe'){player.shields+=1;player.score+=1;logText=`${getPlayerName(player)} reached a safe point and gained 1 shield.`}if(landed.type==='quarantine'){player.quarantined=1;logText=`${getPlayerName(player)} landed on quarantine: stay 1 turn.`}if(['health','risk','chance','energy','surgery'].includes(landed.type)){const result=applyCardForType(landed.type,player);player=result.player;extraTurn=!!player.extraTurn;player.extraTurn=false;if(result.attackBack>0&&state.players.length>1){const targetIndex=(state.currentPlayerIndex+1)%updated.length,target={...updated[targetIndex]};target.position=Math.max(0,target.position-result.attackBack);updated[targetIndex]=target;logText=`${result.card?.text||'Energy card.'} ${getPlayerName(target)} goes back ${result.attackBack} spaces.`}else if(result.nextMiss&&state.players.length>1){const targetIndex=(state.currentPlayerIndex+1)%updated.length,target={...updated[targetIndex]};target.skipped+=1;updated[targetIndex]=target;logText=`${result.card?.text||'Energy card.'} ${getPlayerName(target)} misses the next turn.`}else if(result.organAward){logText=`${result.card?.text||'Chance card.'} ${getPlayerName(player)} collected the ${result.organAward} organ card.`}else if(result.card){logText=result.card.text}}if(player.position>=SPACES.length-1){player.position=SPACES.length-1;state.winner=player.name;logText=`${getPlayerName(player)} reached the brain. Quick recovery!`}updated[state.currentPlayerIndex]=player;state.players=updated;state.lastCard={text:logText};state.movingPlayerId=null;state.isRolling=false;if(!extraTurn&&player.position<SPACES.length-1)state.currentPlayerIndex=(state.currentPlayerIndex+1)%updated.length;render()}
-function submitTrivia(answer){if(!state.trivia)return;const correct=answer===state.trivia.a,reward=state.trivia.reward||2,updated=[...state.players],player={...updated[state.currentPlayerIndex]};if(correct){player.position=Math.min(SPACES.length-1,player.position+reward);player.score+=reward}if(player.position>=SPACES.length-1){player.position=SPACES.length-1;state.winner=player.name}updated[state.currentPlayerIndex]=player;state.players=updated;state.feedback={ok:correct,text:correct?`Correct! Move forward ${reward} ${reward===1?'space':'spaces'}.`:'Wrong answer. Stay in the same spot.'};state.lastCard={text:correct?`${getPlayerName(player)} answered correctly and moved forward ${reward} ${reward===1?'space':'spaces'}.`:`${getPlayerName(player)} answered incorrectly and stayed in place.`};if(correct)playSuccessSound();else playFailSound();state.trivia=null;state.timer=30;render()}
-function resetGame(){state.players=createPlayers(2);state.currentPlayerIndex=0;state.lastRoll=null;state.lastCard={text:'Roll the dice to begin.'};state.winner=null;state.trivia=null;state.feedback=null;state.hoverId=null;state.movingPlayerId=null;render()}
-function enterRoom(){if(state.joinCode.trim())state.roomCode=state.joinCode.trim().toUpperCase();state.entered=true;render()}
+async function handleRoll(){if(state.winner||state.trivia||state.isRolling)return;const currentPlayer=state.players[state.currentPlayerIndex];if(!currentPlayer)return;playDiceSound();state.feedback=null;state.isRolling=true;if(Math.random()<0.24){state.isRolling=false;startTrivia();return}const roll=Math.floor(Math.random()*6)+1;state.lastRoll=roll;const updated=[...state.players];let player={...updated[state.currentPlayerIndex]};if(player.skipped>0){player.skipped-=1;updated[state.currentPlayerIndex]=player;state.players=updated;state.lastCard={text:`${getPlayerName(player)} lost this turn.`};state.currentPlayerIndex=(state.currentPlayerIndex+1)%updated.length;state.isRolling=false;render();await broadcastState();return}if(player.quarantined>0){player.quarantined-=1;updated[state.currentPlayerIndex]=player;state.players=updated;state.lastCard={text:`${getPlayerName(player)} is in quarantine and must stay 1 turn.`};state.currentPlayerIndex=(state.currentPlayerIndex+1)%updated.length;state.isRolling=false;render();await broadcastState();return}state.movingPlayerId=player.id;render();for(let step=0;step<roll;step+=1){player.position=Math.min(SPACES.length-1,player.position+1);updated[state.currentPlayerIndex]=player;state.players=updated;render();await sleep(180);if(player.position>=SPACES.length-1)break}const landed=SPACES[player.position];let extraTurn=false,logText=`${getPlayerName(player)} landed on ${landed.name}.`;if(landed.type==='safe'){player.shields+=1;player.score+=1;logText=`${getPlayerName(player)} reached a safe point and gained 1 shield.`}if(landed.type==='quarantine'){player.quarantined=1;logText=`${getPlayerName(player)} landed on quarantine: stay 1 turn.`}if(['health','risk','chance','energy','surgery'].includes(landed.type)){const result=applyCardForType(landed.type,player);player=result.player;extraTurn=!!player.extraTurn;player.extraTurn=false;if(result.attackBack>0&&state.players.length>1){const targetIndex=(state.currentPlayerIndex+1)%updated.length,target={...updated[targetIndex]};target.position=Math.max(0,target.position-result.attackBack);updated[targetIndex]=target;logText=`${result.card?.text||'Energy card.'} ${getPlayerName(target)} goes back ${result.attackBack} spaces.`}else if(result.nextMiss&&state.players.length>1){const targetIndex=(state.currentPlayerIndex+1)%updated.length,target={...updated[targetIndex]};target.skipped+=1;updated[targetIndex]=target;logText=`${result.card?.text||'Energy card.'} ${getPlayerName(target)} misses the next turn.`}else if(result.organAward){logText=`${result.card?.text||'Chance card.'} ${getPlayerName(player)} collected the ${result.organAward} organ card.`}else if(result.card){logText=result.card.text}}if(player.position>=SPACES.length-1){player.position=SPACES.length-1;state.winner=player.name;logText=`${getPlayerName(player)} reached the brain. Quick recovery!`}updated[state.currentPlayerIndex]=player;state.players=updated;state.lastCard={text:logText};state.movingPlayerId=null;state.isRolling=false;if(!extraTurn&&player.position<SPACES.length-1)state.currentPlayerIndex=(state.currentPlayerIndex+1)%updated.length;render();await broadcastState()}
+async function submitTrivia(answer){if(!state.trivia)return;const correct=answer===state.trivia.a,reward=state.trivia.reward||2,updated=[...state.players],player={...updated[state.currentPlayerIndex]};if(correct){player.position=Math.min(SPACES.length-1,player.position+reward);player.score+=reward}if(player.position>=SPACES.length-1){player.position=SPACES.length-1;state.winner=player.name}updated[state.currentPlayerIndex]=player;state.players=updated;state.feedback={ok:correct,text:correct?`Correct! Move forward ${reward} ${reward===1?'space':'spaces'}.`:'Wrong answer. Stay in the same spot.'};state.lastCard={text:correct?`${getPlayerName(player)} answered correctly and moved forward ${reward} ${reward===1?'space':'spaces'}.`:`${getPlayerName(player)} answered incorrectly and stayed in place.`};if(correct)playSuccessSound();else playFailSound();state.trivia=null;state.timer=30;render();await broadcastState()}
+async function resetGame(){state.players=normalizePlayers(state.players.map(player=>({...player,position:0,shields:0,quarantined:0,skipped:0,extraTurn:false,score:0,organs:[]})));state.currentPlayerIndex=0;state.lastRoll=null;state.lastCard={text:'Roll the dice to begin.'};state.winner=null;state.trivia=null;state.feedback=null;state.hoverId=null;state.movingPlayerId=null;render();await broadcastState()}
+async function enterRoom(){if(state.joinCode.trim())state.roomCode=state.joinCode.trim().toUpperCase();state.entered=true;render();await joinRoomChannel()}
 async function copyShareLink(){const url=`${location.origin}?room=${state.roomCode}`;try{await navigator.clipboard.writeText(url);state.lastCard={text:'Room link copied.'}}catch{state.lastCard={text:'Could not copy automatically.'}}render()}
-function updatePlayerName(id,value){state.players=state.players.map(player=>player.id===id?{...player,name:value.slice(0,18)}:player);render()}
-function addPlayer(){if(state.players.length>=MAX_PLAYERS)return;state.players=[...state.players,{id:state.players.length+1,name:`Player ${state.players.length+1}`,position:0,shields:0,quarantined:0,skipped:0,extraTurn:false,score:0,organs:[]}];render()}
 function sortedPlayers(){return[...state.players].sort((a,b)=>b.score-a.score||b.position-a.position)}
 function escapeHtml(value){return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')}
 function boardMarkup(){const connectors=SPACES.slice(0,-1).map((space,index)=>`<line x1="${space.x}" y1="${space.y}" x2="${SPACES[index+1].x}" y2="${SPACES[index+1].y}" stroke="rgba(255,255,255,.28)" stroke-width="0.85" stroke-linecap="round" />`).join('');const attachLines=SPACES.map(space=>`<line x1="${space.x}" y1="${space.y}" x2="${space.anchorX}" y2="${space.anchorY}" stroke="rgba(255,255,255,.12)" stroke-width="0.45" />`).join('');const hoverSpace=state.hoverId!==null?SPACES.find(space=>space.id===state.hoverId):null;const hoverMarkup=hoverSpace?`<svg class="board-svg" viewBox="0 0 100 100"><line x1="${hoverSpace.x}" y1="${hoverSpace.y}" x2="${hoverSpace.anchorX}" y2="${hoverSpace.anchorY}" stroke="rgba(16,185,129,.88)" stroke-width="0.9" /><circle cx="${hoverSpace.anchorX}" cy="${hoverSpace.anchorY}" r="3.2" fill="rgba(16,185,129,.28)" /><circle cx="${hoverSpace.anchorX}" cy="${hoverSpace.anchorY}" r="5.1" fill="none" stroke="rgba(16,185,129,.8)" stroke-width="0.55" /></svg><div class="hover-tag" style="left:${hoverSpace.anchorX}%;top:${hoverSpace.anchorY}%">${hoverSpace.name}</div>`:'';const spacesMarkup=SPACES.map(space=>{const onSpace=state.players.filter(player=>player.position===space.id);return`<div class="space ${space.type||'normal'}" style="left:${space.x}%;top:${space.y}%;--delay:${(space.id%7)*0.12}s" data-hover-id="${space.id}"><div class="space-id">#${space.id}</div><div class="space-name">${escapeHtml(space.name)}</div><div class="space-body">${escapeHtml(space.body)}</div><div class="space-tokens">${onSpace.map(player=>`<span class="token-pill">${getPlayerToken(player.id-1)}</span>`).join('')}</div></div>`}).join('');return`<div class="board-stage"><div class="board-rails"></div><img class="board-image" src="${ANATOMY_IMAGE_URL}" alt="anatomy board" /><svg class="board-svg" viewBox="0 0 100 100" preserveAspectRatio="none">${connectors}${attachLines}</svg>${hoverMarkup}<div class="board-overlay"></div><div class="board-label finish">Finish</div><div class="board-label start">Start</div><div class="board-hint">Hover squares to highlight body area</div>${spacesMarkup}</div>`}
-function lobbyScreen(){return`<div class="screen"><div class="lobby-wrap"><div class="lobby-left"><div class="brand"><div class="logo">🫀</div><div><div class="domain">${SITE_DOMAIN}</div><div class="title">${GAME_TITLE}</div><div class="subtitle">${SUBTITLE}</div><div class="subtitle">${SCHOOL}</div></div></div><div class="code-box"><div style="text-align:center;font-size:28px;font-weight:900">Join at ${SITE_DOMAIN}</div><div style="text-align:center;font-size:18px;color:#63747e;margin-top:8px">with your anatomy room code</div><div class="code-big"><div class="small">Anatomy Room Code</div><div class="code">${state.roomCode}</div></div></div></div><div class="lobby-right glass"><div><div class="lobby-tag">Lobby</div><div class="lobby-title">Waiting for participants</div><div class="lobby-copy">Roll the dice, land on anatomy squares, collect good or bad cards, answer trivia, and race to the brain for a quick recovery win.</div></div><div class="entry-card"><div class="entry-label">Enter Code</div><input class="entry-input" id="joinCodeInput" placeholder="ENTER CODE" value="${escapeHtml(state.joinCode)}" /></div><div class="entry-actions"><button class="btn btn-white" data-action="new-code">New Code</button><button class="btn btn-main" data-action="start-room">Start Room</button></div></div></div></div>`}
-function gameScreen(){const currentPlayer=state.players[state.currentPlayerIndex]||state.players[0]||null;return`<div class="screen"><div class="game-layout"><div class="topbar glass"><div class="topbar-left"><div class="logo" style="width:58px;height:58px;border-radius:18px">🫀</div><div style="min-width:0"><div class="domain" style="color:#8be4d8">${SITE_DOMAIN}</div><div class="topbar-meta">${SUBTITLE}</div><div class="topbar-meta">North-West College • West Covina, CA</div><div class="topbar-title">${GAME_TITLE}</div></div></div><div class="chip-row"><div class="chip">Room: ${state.roomCode}</div><div class="chip alt">${state.players.length} Joined</div><button class="btn btn-small" style="background:rgba(255,255,255,.08);color:#fff" data-action="back-home">Back</button></div></div><div class="board-panel">${boardMarkup()}</div><div class="hud-wrap"><div class="hud-card"><div class="hud-title">Current Turn</div><div class="turn-hero"><div style="font-size:13px;opacity:.84">Reach the brain to win</div><h3>${state.winner?`${escapeHtml(state.winner)} wins!`:escapeHtml(getPlayerName(currentPlayer))}</h3><p>Last Roll: ${state.lastRoll??'-'}</p></div><div class="mini-box">Room link: ${location.origin}?room=${state.roomCode}<div class="sync-note">Online sync needs Supabase or Firebase keys to be added.</div></div></div><div class="hud-card"><div class="hud-title">Game Actions</div><div class="controls-grid"><button class="btn btn-teal" data-action="roll" ${state.winner||state.trivia||state.isRolling?'disabled':''}>${state.isRolling?'🎲 Rolling...':'🎲 Roll'}</button><button class="btn btn-rose" data-action="reset">↻ Reset</button><button class="btn btn-blue" data-action="share">⤴ Share</button><button class="btn btn-green" data-action="new-code-in-game">New Code</button></div><div style="margin-top:14px">${state.feedback?`<div class="feedback ${state.feedback.ok?'good':'bad'}">${escapeHtml(state.feedback.text)}</div>`:''}<div class="action-box">${escapeHtml(state.lastCard?.text||'Roll the dice to begin.')}</div></div></div><div class="hud-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="hud-title" style="margin:0">Players</div><button class="btn btn-small btn-green" data-action="add-player" ${state.players.length>=MAX_PLAYERS?'disabled':''}>＋ Add</button></div><div class="players-strip">${state.players.map(player=>`<div class="player-card"><div class="player-top"><div class="avatar">${getPlayerToken(player.id-1)}</div><input class="name-input" data-player-name="${player.id}" value="${escapeHtml(player.name)}" placeholder="Player ${player.id}" /></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-size:12px;color:#c9d6d8">${escapeHtml(SPACES[player.position].name)}</div><div class="stats"><span class="badge teal">${player.shields} shield</span><span class="badge gray">${player.score} pts</span><span class="badge green">${player.organs.length} organs</span></div></div></div>`).join('')}</div></div><div class="hud-card"><div class="hud-title">Leaderboard</div><div class="leaderboard-list">${sortedPlayers().map((player,index)=>`<div class="leader-card"><div class="leader-row"><div class="leader-left"><div class="leader-rank">#${index+1}</div><div>${getPlayerToken(player.id-1)}</div><div class="leader-name">${escapeHtml(getPlayerName(player))}</div></div><div style="text-align:right;font-size:12px;color:#bdcfd0"><div>${player.score} pts</div><div>${player.organs.length} organs</div><div>${escapeHtml(SPACES[player.position].name)}</div></div></div></div>`).join('')}</div></div></div><div class="trivia-modal ${state.trivia?'show':''}" id="triviaModal">${state.trivia?`<div class="trivia-card"><div class="trivia-top"><div style="font-size:24px;font-weight:1000">✨ Trivia</div><div class="pill-time">${state.timer}s</div></div><div class="trivia-q">${escapeHtml(state.trivia.q)}</div><div class="trivia-grid">${state.trivia.choices.map((choice,index)=>{const classes=['btn-rose','btn-blue','btn-white','btn-green'];return`<button class="btn trivia-choice ${classes[index]||'btn-teal'}" data-trivia-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`}).join('')}</div><div class="footer-note" style="margin-top:12px">Answer correctly to move forward.</div></div>`:''}</div></div>`}
-function attachEvents(){const joinInput=document.getElementById('joinCodeInput');if(joinInput)joinInput.addEventListener('input',e=>{state.joinCode=e.target.value.toUpperCase()});document.querySelectorAll('[data-hover-id]').forEach(el=>{el.addEventListener('mouseenter',()=>{state.hoverId=Number(el.dataset.hoverId);render()});el.addEventListener('mouseleave',()=>{state.hoverId=null;render()})});document.querySelectorAll('[data-player-name]').forEach(el=>{el.addEventListener('input',e=>updatePlayerName(Number(el.dataset.playerName),e.target.value))});document.querySelectorAll('[data-trivia-choice]').forEach(el=>{el.addEventListener('click',()=>submitTrivia(el.getAttribute('data-trivia-choice')))});document.querySelectorAll('[data-action]').forEach(el=>{el.addEventListener('click',()=>{const action=el.getAttribute('data-action');if(action==='new-code'){const code=randomRoomCode();state.joinCode=code;state.roomCode=code;render()}if(action==='start-room')enterRoom();if(action==='back-home'){state.entered=false;render()}if(action==='roll')handleRoll();if(action==='reset')resetGame();if(action==='share')copyShareLink();if(action==='new-code-in-game'){state.roomCode=randomRoomCode();render()}if(action==='add-player')addPlayer()})})}
-function render(){document.getElementById('app').innerHTML=state.entered?gameScreen():lobbyScreen();attachEvents()}
+function lobbyScreen(){return`<div class="screen"><div class="lobby-wrap"><div class="lobby-left"><div class="brand"><div class="logo">🫀</div><div><div class="domain">${SITE_DOMAIN}</div><div class="title">${GAME_TITLE}</div><div class="subtitle">${SUBTITLE}</div><div class="subtitle">${SCHOOL}</div></div></div><div class="code-box"><div style="text-align:center;font-size:28px;font-weight:900">Join at ${SITE_DOMAIN}</div><div style="text-align:center;font-size:18px;color:#63747e;margin-top:8px">with your anatomy room code</div><div class="code-big"><div class="small">Anatomy Room Code</div><div class="code">${state.roomCode}</div></div></div></div><div class="lobby-right glass"><div><div class="lobby-tag">Lobby</div><div class="lobby-title">Waiting for participants</div><div class="lobby-copy">Roll the dice, land on anatomy squares, collect good or bad cards, answer trivia, and race to the brain for a quick recovery win.</div></div><div class="entry-card"><div class="entry-label">Enter Code</div><input class="entry-input" id="joinCodeInput" placeholder="ENTER CODE" value="${escapeHtml(state.joinCode)}" /></div><div class="entry-actions"><button class="btn btn-white" data-action="new-code">New Code</button><button class="btn btn-main" data-action="start-room">Start Room</button></div><div class="mini-box" style="margin-top:14px">${state.connectionLabel}</div></div></div></div>`}
+function gameScreen(){const currentPlayer=state.players[state.currentPlayerIndex]||state.players[0]||null;return`<div class="screen"><div class="game-layout"><div class="topbar glass"><div class="topbar-left"><div class="logo" style="width:58px;height:58px;border-radius:18px">🫀</div><div style="min-width:0"><div class="domain" style="color:#8be4d8">${SITE_DOMAIN}</div><div class="topbar-meta">${SUBTITLE}</div><div class="topbar-meta">North-West College • West Covina, CA</div><div class="topbar-title">${GAME_TITLE}</div></div></div><div class="chip-row"><div class="chip">Room: ${state.roomCode}</div><div class="chip alt">${state.onlineCount} Online</div><div class="chip">${state.connectionLabel}</div><button class="btn btn-small" style="background:rgba(255,255,255,.08);color:#fff" data-action="back-home">Back</button></div></div><div class="board-panel">${boardMarkup()}</div><div class="hud-wrap"><div class="hud-card"><div class="hud-title">Current Turn</div><div class="turn-hero"><div style="font-size:13px;opacity:.84">Reach the brain to win</div><h3>${state.winner?`${escapeHtml(state.winner)} wins!`:escapeHtml(getPlayerName(currentPlayer))}</h3><p>Last Roll: ${state.lastRoll??'-'}</p></div><div class="mini-box">Room link: ${location.origin}?room=${state.roomCode}<div class="sync-note">Players are auto-added when they join the room.</div></div></div><div class="hud-card"><div class="hud-title">Game Actions</div><div class="controls-grid"><button class="btn btn-teal" data-action="roll" ${state.winner||state.trivia||state.isRolling?'disabled':''}>${state.isRolling?'🎲 Rolling...':'🎲 Roll'}</button><button class="btn btn-rose" data-action="reset">↻ Reset</button><button class="btn btn-blue" data-action="share">⤴ Share</button><button class="btn btn-green" data-action="new-code-in-game">New Code</button></div><div style="margin-top:14px">${state.feedback?`<div class="feedback ${state.feedback.ok?'good':'bad'}">${escapeHtml(state.feedback.text)}</div>`:''}<div class="action-box">${escapeHtml(state.lastCard?.text||'Roll the dice to begin.')}</div></div></div><div class="hud-card"><div class="hud-title">Players</div><div class="players-strip">${state.players.map(player=>`<div class="player-card"><div class="player-top"><div class="avatar">${getPlayerToken(player.id-1)}</div><input class="name-input" data-player-name="${player.id}" value="${escapeHtml(player.name)}" placeholder="Player ${player.id}" ${player.ownerId===clientId?'':'readonly'} /></div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-size:12px;color:#c9d6d8">${escapeHtml(SPACES[player.position].name)}</div><div class="stats"><span class="badge teal">${player.shields} shield</span><span class="badge gray">${player.score} pts</span><span class="badge green">${player.organs.length} organs</span></div></div></div>`).join('')}</div></div><div class="hud-card"><div class="hud-title">Leaderboard</div><div class="leaderboard-list">${sortedPlayers().map((player,index)=>`<div class="leader-card"><div class="leader-row"><div class="leader-left"><div class="leader-rank">#${index+1}</div><div>${getPlayerToken(player.id-1)}</div><div class="leader-name">${escapeHtml(getPlayerName(player))}</div></div><div style="text-align:right;font-size:12px;color:#bdcfd0"><div>${player.score} pts</div><div>${player.organs.length} organs</div><div>${escapeHtml(SPACES[player.position].name)}</div></div></div></div>`).join('')}</div></div></div><div class="trivia-modal ${state.trivia?'show':''}" id="triviaModal">${state.trivia?`<div class="trivia-card"><div class="trivia-top"><div style="font-size:24px;font-weight:1000">✨ Trivia</div><div class="pill-time">${state.timer}s</div></div><div class="trivia-q">${escapeHtml(state.trivia.q)}</div><div class="trivia-grid">${state.trivia.choices.map((choice,index)=>{const classes=['btn-rose','btn-blue','btn-white','btn-green'];return`<button class="btn trivia-choice ${classes[index]||'btn-teal'}" data-trivia-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`}).join('')}</div><div class="footer-note" style="margin-top:12px">Answer correctly to move forward.</div></div>`:''}</div></div>`}
+function attachEvents(){const joinInput=document.getElementById('joinCodeInput');if(joinInput)joinInput.addEventListener('input',e=>{state.joinCode=e.target.value.toUpperCase()});document.querySelectorAll('[data-hover-id]').forEach(el=>{el.addEventListener('mouseenter',()=>{state.hoverId=Number(el.dataset.hoverId);render()});el.addEventListener('mouseleave',()=>{state.hoverId=null;render()})});document.querySelectorAll('[data-player-name]').forEach(el=>{if(el.hasAttribute('readonly')) return;el.addEventListener('input',e=>{saveNameQuietly(Number(el.dataset.playerName),e.target.value);clearTimeout(pendingNameSave);pendingNameSave=setTimeout(()=>commitNameChange(Number(el.dataset.playerName),e.target.value),450)});el.addEventListener('change',e=>commitNameChange(Number(el.dataset.playerName),e.target.value))});document.querySelectorAll('[data-trivia-choice]').forEach(el=>{el.addEventListener('click',()=>submitTrivia(el.getAttribute('data-trivia-choice')))});document.querySelectorAll('[data-action]').forEach(el=>{el.addEventListener('click',()=>{const action=el.getAttribute('data-action');if(action==='new-code'){const code=randomRoomCode();state.joinCode=code;state.roomCode=code;render()}if(action==='start-room')enterRoom();if(action==='back-home'){state.entered=false;render()}if(action==='roll')handleRoll();if(action==='reset')resetGame();if(action==='share')copyShareLink();if(action==='new-code-in-game'){state.roomCode=randomRoomCode();render();joinRoomChannel()}})})}
 function tickTrivia(){if(!state.trivia)return;state.timer-=1;if(state.timer<=0){state.lastCard={text:'Time is up. No trivia bonus.'};state.trivia=null;state.timer=30}render()}
-setInterval(tickTrivia,1000);render();
+function render(){document.getElementById('app').innerHTML=state.entered?gameScreen():lobbyScreen();attachEvents()}
+connectSupabase();setInterval(tickTrivia,1000);render();
 </script>
 </body>
 </html>
