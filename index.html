@@ -68,12 +68,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SITE_DOMAIN='bodyanatomyboardgame.com', GAME_TITLE='Body Anatomy Board Game', SUBTITLE='Class MIB Group Project — Beverly, Stephanie, Lizeth', SCHOOL='North-West College • West Covina, CA • Medical Insurance Biller', ANATOMY_IMAGE_URL='./body%20anatomy%20mib.png';
 const STORAGE_KEYS={clientId:'anatomy-board-client-id', playerName:'anatomy-board-player-name'};
+const ROOM_PRESENCE_PREFIX='body-anatomy-room-presence';
 const clientId=localStorage.getItem(STORAGE_KEYS.clientId)||crypto.randomUUID();
 localStorage.setItem(STORAGE_KEYS.clientId, clientId);
 const LOCAL_CHANNEL_PREFIX='body-anatomy-room-state';
-const SUPABASE_CONFIG={url:'mlrdtescqjfjlwasqtbv',anonKey:'sb_publishable_yfFu3iuFr8WetM_-1Fz6JA_NGwi7_Z5'};
+const SUPABASE_CONFIG={url:'mlrdtescqjfjlwasqtbv',anonKey:'sb_publishableyfFu3iuFr8WetM-1Fz6JA_NGwi7_Z5'};
 
-let supabase=null, roomChannel=null, nameSaveTimer=null, isRendering=false, localChannel=null;
+let supabase=null, roomChannel=null, nameSaveTimer=null, isRendering=false, localChannel=null, presenceTimer=null;
 const state={entered:false,roomCode:randomRoomCode(),joinCode:'',lobbyName:localStorage.getItem(STORAGE_KEYS.playerName)||'',players:[],currentPlayerIndex:0,lastRoll:null,lastCard:{text:'Roll the dice to begin.'},winner:null,trivia:null,timer:30,feedback:null,movingPlayerId:null,isRolling:false,onlineCount:1,connectionLabel:'Offline local mode',camera:{scale:1,tx:0,ty:0}};
 
 const TRIVIA_QUESTIONS=[
@@ -125,11 +126,17 @@ function serializeState(){return {players:state.players,currentPlayerIndex:state
 function updateCamera(){const player=currentPlayer();if(!player){state.camera={scale:1,tx:0,ty:0};return}const space=SPACES[player.position];const tx=(50-space.x)*0.55;const ty=(50-space.y)*0.55;state.camera={scale:1.1,tx,ty}}
 function applySerializedState(data){state.players=normalizePlayers(data.players||state.players);state.currentPlayerIndex=Math.min(data.currentPlayerIndex||0,Math.max(0,state.players.length-1));state.lastRoll=data.lastRoll??null;state.lastCard=data.lastCard||state.lastCard;state.winner=data.winner??null;state.feedback=data.feedback??null;state.onlineCount=state.players.length;updateCamera()}
 
-function setupLocalChannel(){if(localChannel)return;const roomKey=`${LOCAL_CHANNEL_PREFIX}:${state.roomCode}`;try{localChannel=new BroadcastChannel(roomKey);localChannel.onmessage=(event)=>{const data=event.data;if(!data||data.sender===clientId)return;applySerializedState(data);state.connectionLabel='Local sync connected';safeRender()}}catch{}
-  window.addEventListener('storage',e=>{if(e.key!==roomKey||!e.newValue)return;try{const data=JSON.parse(e.newValue);if(data.sender===clientId)return;applySerializedState(data);state.connectionLabel='Local sync connected';safeRender()}catch{}})
+function getPresenceKey(){return `${ROOM_PRESENCE_PREFIX}:${state.roomCode}`}
+function getStateKey(){return `${LOCAL_CHANNEL_PREFIX}:${state.roomCode}`}
+function readPresenceMap(){try{return JSON.parse(localStorage.getItem(getPresenceKey())||'{}')}catch{return {}}}
+function writePresenceMap(map){try{localStorage.setItem(getPresenceKey(),JSON.stringify(map))}catch{}}
+function updatePresenceHeartbeat(){const presence=readPresenceMap();presence[clientId]={name:state.lobbyName||localStorage.getItem(STORAGE_KEYS.playerName)||'Player',ts:Date.now()};writePresenceMap(presence)}
+function cleanupAndApplyPresence(){const now=Date.now();const presence=readPresenceMap();let changed=false;for(const [id,meta] of Object.entries(presence)){if(!meta||!meta.ts||now-meta.ts>15000){delete presence[id];changed=true}}if(changed)writePresenceMap(presence);const existingByOwner=new Map(state.players.map(p=>[p.ownerId,p]));const merged=Object.entries(presence).map(([ownerId,meta])=>existingByOwner.get(ownerId)?{...existingByOwner.get(ownerId),name:meta.name||existingByOwner.get(ownerId).name,ownerId}:{...createBasePlayer(ownerId,meta.name||'Player')});state.players=normalizePlayers(merged.length?merged:[createBasePlayer(clientId,state.lobbyName||'Player')]);state.onlineCount=state.players.length;updateCamera()}
+function setupLocalChannel(){if(localChannel){try{localChannel.close()}catch{}}const roomKey=getStateKey();try{localChannel=new BroadcastChannel(roomKey);localChannel.onmessage=(event)=>{const data=event.data;if(!data||data.sender===clientId)return;applySerializedState(data);cleanupAndApplyPresence();state.connectionLabel='Local sync connected';safeRender()}}catch{}
+  window.onstorage=(e)=>{if(e.key===roomKey&&e.newValue){try{const data=JSON.parse(e.newValue);if(data.sender!==clientId){applySerializedState(data);cleanupAndApplyPresence();state.connectionLabel='Local sync connected';safeRender()}}catch{}}if(e.key===getPresenceKey()){cleanupAndApplyPresence();safeRender()}}
+  clearInterval(presenceTimer);updatePresenceHeartbeat();presenceTimer=setInterval(()=>{updatePresenceHeartbeat();cleanupAndApplyPresence()},5000)
 }
-async function broadcastState(){const payload=serializeState();if(roomChannel){await roomChannel.send({type:'broadcast',event:'game-state',payload})} if(localChannel)localChannel.postMessage(payload); try{localStorage.setItem(`${LOCAL_CHANNEL_PREFIX}:${state.roomCode}`,JSON.stringify(payload))}catch{}
-}
+async function broadcastState(){const payload=serializeState();if(roomChannel){await roomChannel.send({type:'broadcast',event:'game-state',payload})}if(localChannel)localChannel.postMessage(payload);try{localStorage.setItem(getStateKey(),JSON.stringify(payload))}catch{}}
 async function connectRealtime(){if(isSupabaseConfigured()&&!supabase){supabase=createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.anonKey)}
   setupLocalChannel();
   if(!supabase)return;
@@ -144,9 +151,9 @@ function createTrailAt(space){const shell=document.querySelector('.board-stage')
 async function showDiceRoll(roll){const overlay=document.getElementById('diceOverlay');const box=document.getElementById('diceBox');const label=document.getElementById('diceLabel');overlay.classList.add('show');label.textContent='Rolling...';const faces=['🎲','⚀','⚁','⚂','⚃','⚄','⚅'];for(let i=0;i<8;i+=1){box.textContent=faces[(i%6)+1];await sleep(90)}box.textContent=String(roll);label.textContent='Move!';await sleep(550);overlay.classList.remove('show')}
 function pulseLanding(spaceId){requestAnimationFrame(()=>{const el=document.querySelector(`[data-space-id="${spaceId}"]`);if(!el)return;el.classList.remove('land');void el.offsetWidth;el.classList.add('land')})}
 
-function saveNameQuietly(value){state.lobbyName=value.slice(0,18);localStorage.setItem(STORAGE_KEYS.playerName,state.lobbyName);const me=myPlayer();if(me)me.name=state.lobbyName}
-async function commitNameChange(value){saveNameQuietly(value);if(roomChannel){await roomChannel.track({clientId,name:state.lobbyName,roomCode:state.roomCode})} await broadcastState();safeRender()}
-function ensureJoinedPlayer(){const mine=myPlayer();if(!mine){state.players=normalizePlayers([...state.players,createBasePlayer(clientId,state.lobbyName||localStorage.getItem(STORAGE_KEYS.playerName)||`Player ${state.players.length+1}`)])}state.onlineCount=state.players.length;updateCamera()}
+function saveNameQuietly(value){state.lobbyName=value.slice(0,18);localStorage.setItem(STORAGE_KEYS.playerName,state.lobbyName);const me=myPlayer();if(me)me.name=state.lobbyName;updatePresenceHeartbeat();cleanupAndApplyPresence()}
+async function commitNameChange(value){saveNameQuietly(value);if(roomChannel){await roomChannel.track({clientId,name:state.lobbyName,roomCode:state.roomCode})}await broadcastState()}
+function ensureJoinedPlayer(){updatePresenceHeartbeat();cleanupAndApplyPresence();const mine=myPlayer();if(!mine){state.players=normalizePlayers([...state.players,createBasePlayer(clientId,state.lobbyName||localStorage.getItem(STORAGE_KEYS.playerName)||`Player ${state.players.length+1}`)]);updatePresenceHeartbeat();cleanupAndApplyPresence()}state.onlineCount=state.players.length;updateCamera()}
 function startTrivia(){state.trivia=TRIVIA_QUESTIONS[Math.floor(Math.random()*TRIVIA_QUESTIONS.length)];state.timer=30;state.feedback=null;playTriviaOpenSound();safeRender()}
 function applyCardForType(type,player){const deck=getCardDeckByType(type);if(!deck)return{player,card:null,attackBack:0,nextMiss:false,organAward:null};const picked=chooseRandomCard(deck);let updatedPlayer=picked.effect(player),organAward=null;if(picked.collectOrgan){const available=ORGAN_POOL.filter(organ=>!updatedPlayer.organs.includes(organ));organAward=available.length?available[Math.floor(Math.random()*available.length)]:ORGAN_POOL[Math.floor(Math.random()*ORGAN_POOL.length)];updatedPlayer={...updatedPlayer,organs:[...updatedPlayer.organs,organAward]}}return{player:updatedPlayer,card:picked,attackBack:picked.attackBack||0,nextMiss:!!picked.nextMiss,organAward}}
 
@@ -182,7 +189,7 @@ function gameScreen(){const cp=currentPlayer();return`<div class="screen"><div c
 
 function attachEvents(){
   const joinInput=document.getElementById('joinCodeInput'); if(joinInput)joinInput.addEventListener('input',e=>{state.joinCode=e.target.value.toUpperCase()});
-  const nameInput=document.getElementById('playerNameInput'); if(nameInput)nameInput.addEventListener('input',e=>{saveNameQuietly(e.target.value); clearTimeout(nameSaveTimer); nameSaveTimer=setTimeout(()=>commitNameChange(e.target.value),300)});
+  const nameInput=document.getElementById('playerNameInput'); if(nameInput){nameInput.addEventListener('input',e=>{saveNameQuietly(e.target.value); clearTimeout(nameSaveTimer); nameSaveTimer=setTimeout(()=>commitNameChange(e.target.value),600)}); nameInput.addEventListener('keydown',e=>e.stopPropagation())}
   document.querySelectorAll('[data-trivia-choice]').forEach(el=>el.addEventListener('click',()=>submitTrivia(el.getAttribute('data-trivia-choice'))));
   document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',()=>{const action=el.getAttribute('data-action'); if(action==='new-code'){const code=randomRoomCode(); state.joinCode=code; state.roomCode=code; safeRender()} if(action==='start-room')enterRoom(); if(action==='back-home'){state.entered=false; safeRender()} if(action==='roll')handleRoll(); if(action==='reset')resetGame(); if(action==='share')copyShareLink(); if(action==='new-code-in-game'){state.roomCode=randomRoomCode(); connectRealtime(); broadcastState(); safeRender()}}));
 }
