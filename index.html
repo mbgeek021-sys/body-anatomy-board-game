@@ -71,7 +71,7 @@ const STORAGE_KEYS={clientId:'anatomy-board-client-id', playerName:'anatomy-boar
 const clientId=localStorage.getItem(STORAGE_KEYS.clientId)||crypto.randomUUID();
 localStorage.setItem(STORAGE_KEYS.clientId, clientId);
 const LOCAL_CHANNEL_PREFIX='body-anatomy-room-state';
-const SUPABASE_CONFIG={url:'PASTE_YOUR_SUPABASE_URL',anonKey:'PASTE_YOUR_SUPABASE_ANON_KEY'};
+const SUPABASE_CONFIG={url:'mlrdtescqjfjlwasqtbv',anonKey:'sb_publishable_yfFu3iuFr8WetM_-1Fz6JA_NGwi7_Z5'};
 
 let supabase=null, roomChannel=null, nameSaveTimer=null, isRendering=false, localChannel=null;
 const state={entered:false,roomCode:randomRoomCode(),joinCode:'',lobbyName:localStorage.getItem(STORAGE_KEYS.playerName)||'',players:[],currentPlayerIndex:0,lastRoll:null,lastCard:{text:'Roll the dice to begin.'},winner:null,trivia:null,timer:30,feedback:null,movingPlayerId:null,isRolling:false,onlineCount:1,connectionLabel:'Offline local mode',camera:{scale:1,tx:0,ty:0}};
