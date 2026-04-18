@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Body Anatomy Board Game</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     :root{
       --bg1:#07131a;--bg2:#0b2230;--panel:#0d1e2c;--panel2:#102636;--text:#f7fcff;--muted:#c4d7df;--line:rgba(255,255,255,.12);
@@ -156,7 +156,13 @@
     localStorage.setItem(STORAGE_KEYS.clientId,clientId);
     const SUPABASE_CONFIG={url:'https://mlrdtescqjfjlwasqtbv.supabase.co',anonKey:'sb_publishableyfFu3iuFr8WetM-1Fz6JA_NGwi7_Z5'};
 
-    const supabase=window.supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.anonKey);
+    let sb=null;
+    function initSupabase(){
+      if(!window.supabase || typeof window.supabase.createClient !== 'function'){
+        throw new Error('Supabase library failed to load.');
+      }
+      sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    }
 
     let roomChannel=null;
     let presenceChannel=null;
@@ -268,19 +274,19 @@
     }
 
     async function fetchRoom(){
-      const {data,error}=await supabase.from('rooms').select('*').eq('room_code',state.roomCode).maybeSingle();
+      const {data,error}=await sb.from('rooms').select('*').eq('room_code',state.roomCode).maybeSingle();
       if(error) throw error;
       return data;
     }
 
     async function upsertPlayerRecord(){
       const playerName=state.lobbyName||localStorage.getItem(STORAGE_KEYS.playerName)||'Player';
-      const {error}=await supabase.from('players').upsert({room_code:state.roomCode,client_id:clientId,player_name:playerName});
+      const {error}=await sb.from('players').upsert({room_code:state.roomCode,client_id:clientId,player_name:playerName});
       if(error) throw error;
     }
 
     async function fetchPlayers(){
-      const {data,error}=await supabase.from('players').select('*').eq('room_code',state.roomCode).order('joined_at',{ascending:true});
+      const {data,error}=await sb.from('players').select('*').eq('room_code',state.roomCode).order('joined_at',{ascending:true});
       if(error) throw error;
       return data||[];
     }
@@ -293,7 +299,7 @@
     }
 
     async function saveRoomState(){
-      const {error}=await supabase.from('rooms').update({state_json:serializeState(),updated_at:new Date().toISOString()}).eq('room_code',state.roomCode);
+      const {error}=await sb.from('rooms').update({state_json:serializeState(),updated_at:new Date().toISOString()}).eq('room_code',state.roomCode);
       if(error) throw error;
     }
 
@@ -301,7 +307,7 @@
       const existing=await fetchRoom();
       if(existing) return existing;
       const starterState={players:[],currentPlayerIndex:0,lastRoll:null,lastCard:{text:'Roll the dice to begin.'},winner:null,feedback:null};
-      const {error}=await supabase.from('rooms').insert({room_code:state.roomCode,host_id:clientId,state_json:starterState});
+      const {error}=await sb.from('rooms').insert({room_code:state.roomCode,host_id:clientId,state_json:starterState});
       if(error) throw error;
       return await fetchRoom();
     }
@@ -319,7 +325,7 @@
       if(roomChannel){await roomChannel.unsubscribe();roomChannel=null;}
       if(presenceChannel){await presenceChannel.unsubscribe();presenceChannel=null;}
 
-      roomChannel=supabase.channel(`room-state-${state.roomCode}`)
+      roomChannel=sb.channel(`room-state-${state.roomCode}`)
         .on('postgres_changes',{event:'UPDATE',schema:'public',table:'rooms',filter:`room_code=eq.${state.roomCode}`},payload=>{
           applyRoomState(payload.new.state_json||{});
           state.connectionLabel='Supabase live connected';
@@ -327,7 +333,7 @@
         })
         .subscribe();
 
-      presenceChannel=supabase.channel(`room-presence-${state.roomCode}`,{config:{presence:{key:clientId}}})
+      presenceChannel=sb.channel(`room-presence-${state.roomCode}`,{config:{presence:{key:clientId}}})
         .on('presence',{event:'sync'},()=>{})
         .subscribe(async status=>{
           if(status==='SUBSCRIBED'){
@@ -457,7 +463,11 @@
       const connectors=SPACES.slice(0,-1).map((space,index)=>`<line x1="${space.x}" y1="${space.y}" x2="${SPACES[index+1].x}" y2="${SPACES[index+1].y}" stroke="rgba(255,255,255,.28)" stroke-width="0.85" stroke-linecap="round" />`).join('');
       const cp=currentPlayer();
       const focusId=cp?cp.position:null;
-      const spacesMarkup=SPACES.map(space=>{const onSpace=state.players.filter(player=>player.position===space.id);const currentClass=focusId===space.id?' current-turn':'';return`<div class="space ${space.type||'normal'}${currentClass}" data-space-id="${space.id}" style="left:${space.x}%;top:${space.y}%;--delay:${(space.id%7)*0.12}s"><div class="space-id">#${space.id}</div><div class="space-name">${escapeHtml(space.name)}</div><div class="space-body">${escapeHtml(space.body)}</div><div class="space-tokens">${onSpace.map(player=>`<span class="token-with-name"><span class="token-pill">${getPlayerToken(player.id-1)}</span><span class="token-name">${escapeHtml(getPlayerName(player))}</span></span>`).join('')}</div></div>`}).join('');
+      const spacesMarkup=SPACES.map(space=>{
+        const onSpace=state.players.filter(player=>player.position===space.id);
+        const currentClass=focusId===space.id?' current-turn':'';
+        return `<div class="space ${space.type||'normal'}${currentClass}" data-space-id="${space.id}" style="left:${space.x}%;top:${space.y}%;--delay:${(space.id%7)*0.12}s"><div class="space-id">#${space.id}</div><div class="space-name">${escapeHtml(space.name)}</div><div class="space-body">${escapeHtml(space.body)}</div><div class="space-tokens">${onSpace.map(player=>`<span class="token-with-name"><span class="token-pill">${getPlayerToken(player.id-1)}</span><span class="token-name">${escapeHtml(getPlayerName(player))}</span></span>`).join('')}</div></div>`;
+      }).join('');
       return `<div class="board-shell"><div class="board-camera" style="transform:translate(${state.camera.tx}%, ${state.camera.ty}%) scale(${state.camera.scale})"><div class="board-stage"><div class="board-rails"></div><img class="board-image" src="${ANATOMY_IMAGE_URL}" alt="anatomy board" /><svg class="board-svg connectors" viewBox="0 0 100 100" preserveAspectRatio="none">${connectors}</svg><div class="board-overlay"></div><div class="board-label finish">Finish</div><div class="board-label start">Start</div>${spacesMarkup}</div></div></div>`;
     }
 
@@ -474,9 +484,9 @@
 
     function attachEvents(){
       const joinInput=document.getElementById('joinCodeInput');
-      if(joinInput) joinInput.addEventListener('input',e=>{state.joinCode=e.target.value.toUpperCase()});
+      if(joinInput) joinInput.addEventListener('input',e=>{state.joinCode=e.target.value.toUpperCase();});
       const nameInput=document.getElementById('playerNameInput');
-      if(nameInput) nameInput.addEventListener('input',e=>{saveNameQuietly(e.target.value);clearTimeout(nameSaveTimer);nameSaveTimer=setTimeout(()=>commitNameChange(e.target.value),400)});
+      if(nameInput) nameInput.addEventListener('input',e=>{saveNameQuietly(e.target.value);clearTimeout(nameSaveTimer);nameSaveTimer=setTimeout(()=>commitNameChange(e.target.value),400);});
       document.querySelectorAll('[data-trivia-choice]').forEach(el=>el.addEventListener('click',()=>submitTrivia(el.getAttribute('data-trivia-choice'))));
       document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',()=>{
         const action=el.getAttribute('data-action');
@@ -490,13 +500,42 @@
       }));
     }
 
-    function tickTrivia(){if(!state.trivia)return;state.timer-=1;if(state.timer<=0){state.lastCard={text:'Time is up. No trivia bonus.'};state.trivia=null;state.timer=30}safeRender()}
-    function safeRender(){if(isRendering)return;isRendering=true;requestAnimationFrame(()=>{document.getElementById('app').innerHTML=state.entered?gameScreen():lobbyScreen();attachEvents();isRendering=false;})}
+    function tickTrivia(){
+      if(!state.trivia) return;
+      state.timer-=1;
+      if(state.timer<=0){
+        state.lastCard={text:'Time is up. No trivia bonus.'};
+        state.trivia=null;
+        state.timer=30;
+      }
+      safeRender();
+    }
 
-    const roomFromUrl=new URLSearchParams(location.search).get('room');
-    if(roomFromUrl){state.joinCode=roomFromUrl.toUpperCase();state.roomCode=state.joinCode;}
-    setInterval(tickTrivia,1000);
-    safeRender();
+    function safeRender(){
+      if(isRendering) return;
+      isRendering=true;
+      requestAnimationFrame(()=>{
+        document.getElementById('app').innerHTML=state.entered?gameScreen():lobbyScreen();
+        attachEvents();
+        isRendering=false;
+      });
+    }
+
+    function showFatalError(message){
+      const app=document.getElementById('app');
+      app.innerHTML=`<div class="screen"><div style="max-width:900px;margin:0 auto;padding:24px;border-radius:28px;background:linear-gradient(180deg,rgba(13,30,44,.96),rgba(9,22,34,.94));border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 64px rgba(0,0,0,.32)"><div style="font-size:12px;letter-spacing:.28em;text-transform:uppercase;font-weight:900;color:#7ce6da">Body Anatomy Board Game</div><h1 style="margin:10px 0 8px;font-size:38px;line-height:1">Something broke</h1><p style="color:#c4d7df;font-size:16px;line-height:1.5">${escapeHtml(message)}</p></div></div>`;
+    }
+
+    try{
+      initSupabase();
+      const roomFromUrl=new URLSearchParams(location.search).get('room');
+      if(roomFromUrl){state.joinCode=roomFromUrl.toUpperCase();state.roomCode=state.joinCode;}
+      setInterval(tickTrivia,1000);
+      safeRender();
+    }catch(error){
+      console.error(error);
+      showFatalError(error?.message||'Unknown startup error.');
+    }
   </script>
 </body>
 </html>
