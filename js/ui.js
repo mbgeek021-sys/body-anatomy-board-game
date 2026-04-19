@@ -46,6 +46,43 @@ window.handleStartRoomClick = async function(){
   }
 };
 
+window.startTrivia = function(){
+  if (!window.TRIVIA_QUESTIONS || !window.TRIVIA_QUESTIONS.length) return;
+  state.trivia = window.TRIVIA_QUESTIONS[Math.floor(Math.random()*window.TRIVIA_QUESTIONS.length)];
+  state.timer = 30;
+  state.feedback = null;
+  window.safeRender();
+};
+
+window.getSafeCurrentPlayer = function(){
+  if (typeof window.currentPlayer === 'function') {
+    return window.currentPlayer();
+  }
+  return state.players?.[state.currentPlayerIndex] || state.players?.[0] || null;
+};
+
+window.getSafeMyPlayer = function(){
+  if (typeof window.myPlayer === 'function') {
+    return window.myPlayer();
+  }
+  return state.players?.find?.(p => p.ownerId === window.clientId) || null;
+};
+
+window.getSafePlayerName = function(player){
+  if (typeof window.getPlayerName === 'function') {
+    return window.getPlayerName(player);
+  }
+  return player?.name || 'Player';
+};
+
+window.getSafePlayerToken = function(index){
+  if (typeof window.getPlayerToken === 'function') {
+    return window.getPlayerToken(index);
+  }
+  const tokens = ['🩺','💉','💊','🩹','🌡️','🫀'];
+  return tokens[index] || '🙂';
+};
+
 window.lobbyScreen = function(){
 return `
 <div class="screen">
@@ -120,49 +157,178 @@ return `
 };
 
 window.gameScreen = function(){
-return `
-<div class="screen">
-  <div class="glass" style="max-width:1100px;margin:0 auto;padding:32px;border-radius:28px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div>
-        <div class="domain" style="color:#8be4d8">${window.APP_CONFIG.SITE_DOMAIN}</div>
-        <div class="title" style="font-size:42px;">Joined Room</div>
-        <div class="subtitle">Room: ${window.escapeHtml(state.roomCode)}</div>
-      </div>
-      <button class="btn btn-white click-btn" onclick="window.goBackHome()">Back</button>
-    </div>
+  const cp = window.getSafeCurrentPlayer();
+  const mine = window.getSafeMyPlayer();
+  const myTurn = cp && mine && cp.ownerId === mine.ownerId;
 
-    <div style="margin-top:24px;padding:20px;border-radius:20px;background:rgba(255,255,255,.05);">
-      <div style="font-size:24px;font-weight:900;">You made it into the game screen.</div>
-      <div style="margin-top:10px;color:#c4d7df;">If you can see this, the Start Room button works and the real problem is in board/game rendering.</div>
-      <div style="margin-top:18px;font-weight:800;">Status: ${window.escapeHtml(state.connectionLabel)}</div>
-      <div style="margin-top:8px;font-weight:800;">Player: ${window.escapeHtml(state.lobbyName)}</div>
-      <div style="margin-top:8px;font-weight:800;">Players loaded: ${Array.isArray(state.players) ? state.players.length : 0}</div>
+  let boardHtml = '';
+
+  try{
+    if(typeof window.boardMarkup === 'function'){
+      boardHtml = window.boardMarkup();
+    }else{
+      boardHtml = `<div style="padding:24px;color:white;">Board not loaded yet.</div>`;
+    }
+  }catch(err){
+    console.error('board render failed', err);
+    boardHtml = `
+      <div style="padding:24px;color:white;">
+        <h2>Board render failed</h2>
+        <p>${window.escapeHtml(err?.message || 'Unknown board error')}</p>
+      </div>
+    `;
+  }
+
+  return `
+  <div class="screen">
+    <div class="game-layout">
+
+      <div class="topbar glass">
+        <div class="topbar-left">
+          <div class="logo" style="width:58px;height:58px;border-radius:18px">🫀</div>
+          <div>
+            <div class="domain" style="color:#8be4d8">${window.APP_CONFIG.SITE_DOMAIN}</div>
+            <div class="topbar-meta">${window.APP_CONFIG.SUBTITLE}</div>
+            <div class="topbar-meta">${window.APP_CONFIG.SCHOOL}</div>
+            <div class="topbar-title">${window.APP_CONFIG.GAME_TITLE}</div>
+          </div>
+        </div>
+
+        <div class="chip-row">
+          <div class="chip">Room: ${state.roomCode}</div>
+          <div class="chip alt">${state.onlineCount} Players</div>
+          <div class="chip">${state.connectionLabel}</div>
+          <button class="btn btn-small click-btn" onclick="window.goBackHome()">Back</button>
+        </div>
+      </div>
+
+      <div class="board-panel">
+        ${boardHtml}
+      </div>
+
+      <div class="hud-wrap">
+        <div class="hud-card">
+          <div class="hud-title">Current Turn</div>
+          <div class="turn-hero">
+            <div style="font-size:13px;opacity:.8">
+              ${myTurn ? 'Your turn' : 'Wait for your turn'}
+            </div>
+
+            <h3>
+              ${state.winner
+                ? window.escapeHtml(state.winner) + ' wins!'
+                : window.escapeHtml(window.getSafePlayerName(cp))}
+            </h3>
+
+            <p>Last Roll: ${state.lastRoll ?? '-'}</p>
+          </div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-title">Game Actions</div>
+
+          <div class="controls-grid">
+            <button class="btn btn-teal click-btn"
+              onclick="window.runSafe(()=>window.handleRoll(),'Roll failed.')"
+              ${state.winner||state.trivia||state.isRolling||!myTurn?'disabled':''}>
+              ${state.isRolling?'🎲 Rolling...':'🎲 Roll'}
+            </button>
+
+            <button class="btn btn-rose click-btn"
+              onclick="window.runSafe(()=>window.resetGame(),'Reset failed.')">
+              ↻ Reset
+            </button>
+
+            <button class="btn btn-blue click-btn"
+              onclick="window.runSafe(()=>window.copyShareLink(),'Share failed.')">
+              ⤴ Share
+            </button>
+
+            <button class="btn btn-green click-btn"
+              onclick="window.makeNewCode()">
+              New Code
+            </button>
+          </div>
+
+          <div style="margin-top:14px">
+            ${state.feedback
+              ? `<div class="feedback ${state.feedback.ok?'good':'bad'}">${window.escapeHtml(state.feedback.text)}</div>`
+              : ''}
+
+            <div class="action-box">
+              ${window.escapeHtml(state.lastCard?.text || 'Roll the dice to begin.')}
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-title">Players</div>
+
+          <div class="players-strip">
+            ${(state.players || []).map((player, index)=>`
+              <div class="player-card">
+                <div class="player-top">
+                  <div class="avatar">${window.getSafePlayerToken(index)}</div>
+                  <div style="font-weight:800;flex:1">
+                    ${window.escapeHtml(window.getSafePlayerName(player))}
+                  </div>
+                </div>
+
+                <div style="font-size:12px;color:#c9d6d8">
+                  Position: ${player.position ?? 0}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-title">Debug</div>
+          <div class="action-box">
+            entered: ${String(state.entered)}<br>
+            players: ${(state.players || []).length}<br>
+            room: ${window.escapeHtml(state.roomCode)}<br>
+            boardMarkup: ${typeof window.boardMarkup}<br>
+            handleRoll: ${typeof window.handleRoll}<br>
+            resetGame: ${typeof window.resetGame}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-`;
+  `;
 };
 
 window.attachEvents = function(){
   const joinInput = document.getElementById('joinCodeInput');
   if(joinInput && !joinInput.dataset.bound){
-    joinInput.dataset.bound='1';
-    joinInput.addEventListener('input',e=>{
+    joinInput.dataset.bound = '1';
+    joinInput.addEventListener('input', e => {
       state.joinCode = e.target.value.toUpperCase();
     });
   }
 
   const nameInput = document.getElementById('playerNameInput');
   if(nameInput && !nameInput.dataset.bound){
-    nameInput.dataset.bound='1';
-    nameInput.addEventListener('input',e=>{
+    nameInput.dataset.bound = '1';
+    nameInput.addEventListener('input', e => {
       window.saveNameQuietly(e.target.value);
     });
   }
 };
 
-window.tickTrivia = function(){};
+window.tickTrivia = function(){
+  if(!state.trivia) return;
+  state.timer--;
+
+  if(state.timer <= 0){
+    state.lastCard = { text:'Time is up. No trivia bonus.' };
+    state.trivia = null;
+    state.timer = 30;
+  }
+
+  window.safeRender();
+};
 
 window.safeRender = function(){
   if(window.isRendering) return;
@@ -179,10 +345,18 @@ window.safeRender = function(){
 
 window.showFatalError = function(message){
   document.getElementById('app').innerHTML = `
-  <div class="screen">
-    <div style="max-width:900px;margin:0 auto;padding:24px;border-radius:28px;background:rgba(12,25,40,.95);border:1px solid rgba(255,255,255,.1);">
-      <h1>Something broke</h1>
-      <p>${window.escapeHtml(message)}</p>
+    <div class="screen">
+      <div style="
+        max-width:900px;
+        margin:0 auto;
+        padding:24px;
+        border-radius:28px;
+        background:rgba(12,25,40,.95);
+        border:1px solid rgba(255,255,255,.1);
+      ">
+        <h1>Something broke</h1>
+        <p>${window.escapeHtml(message)}</p>
+      </div>
     </div>
-  </div>`;
+  `;
 };
