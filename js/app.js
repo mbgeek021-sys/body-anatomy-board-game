@@ -1,4 +1,4 @@
-window.withTimeout = function(promise, ms = 8000){
+window.withTimeout = function(promise, ms = 6000){
   return Promise.race([
     promise,
     new Promise((_, reject) =>
