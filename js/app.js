@@ -1,4 +1,4 @@
-window.enterRoom = async function () {
+window.enterRoom = function () {
   state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
 
   if (!state.lobbyName.trim()) {
@@ -9,15 +9,13 @@ window.enterRoom = async function () {
 
   state.connectionLabel = 'Entering game...';
 
-  state.entered = true;
-
   state.players = [
     window.createBasePlayer(window.clientId, state.lobbyName)
   ];
-
   state.onlineCount = 1;
   state.currentPlayerIndex = 0;
   state.lastCard = { text: 'Roll the dice to begin.' };
+  state.entered = true;
 
   window.safeRender();
 
