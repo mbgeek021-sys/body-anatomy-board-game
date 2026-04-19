@@ -1,38 +1,34 @@
-window.withTimeout = function (promise, ms = 5000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Timed out')), ms)
-    )
-  ]);
-};
-
 window.enterRoom = async function () {
-  return await window.runSafe(async () => {
-    state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
+  state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
 
-    if (!state.lobbyName.trim()) {
-      throw new Error('Enter your name first.');
-    }
-
-    state.connectionLabel = 'Connecting...';
+  if (!state.lobbyName.trim()) {
+    state.connectionLabel = 'Enter your name first.';
     window.safeRender();
+    return;
+  }
 
-    await window.withTimeout(window.ensureRoomExists());
+  state.connectionLabel = 'Entering game...';
 
-    state.connectionLabel = 'Joining room...';
-    window.safeRender();
+  state.entered = true;
 
-    await window.withTimeout(window.joinRoomStateOnly());
+  state.players = [
+    window.createBasePlayer(window.clientId, state.lobbyName)
+  ];
 
-    state.entered = true;
-    window.safeRender();
+  state.onlineCount = 1;
+  state.currentPlayerIndex = 0;
+  state.lastCard = { text: 'Roll the dice to begin.' };
 
+  window.safeRender();
+
+  window.runSafe(async () => {
+    await window.ensureRoomExists();
+    await window.joinRoomStateOnly();
+    await window.refreshFromServer();
     window.startPolling();
-
     state.connectionLabel = 'Live sync active';
     window.safeRender();
-  }, 'Could not join room.');
+  }, 'Background sync failed.');
 };
 
 window.copyShareLink = async function () {
