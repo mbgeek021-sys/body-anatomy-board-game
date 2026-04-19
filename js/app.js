@@ -26,10 +26,6 @@ window.enterRoom = async function(){
     state.connectionLabel = 'Player added...';
     window.safeRender();
 
-    await window.withTimeout(window.syncPlayersIntoRoomState());
-    state.connectionLabel = 'Sync complete...';
-    window.safeRender();
-
     state.entered = true;
     window.safeRender();
 
