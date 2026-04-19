@@ -40,8 +40,6 @@ window.runSafe = async function (fn, fallback = 'Something failed.') {
   } catch (error) {
     console.error('Supabase/Game error:', error);
     window.setStatus(error?.message || fallback, true);
-    state.lastCard = { text: error?.message || fallback };
-    window.safeRender();
     return null;
   }
 };
@@ -82,6 +80,7 @@ window.ensureRoomExists = async function () {
 
 window.joinRoomStateOnly = async function () {
   const room = await window.fetchRoom();
+
   const roomState = room?.state_json || {
     players: [],
     currentPlayerIndex: 0,
@@ -117,14 +116,6 @@ window.joinRoomStateOnly = async function () {
     .eq('room_code', state.roomCode);
 
   if (error) throw error;
-
-  state.players = normalizePlayers(nextState.players);
-  state.currentPlayerIndex = nextState.currentPlayerIndex || 0;
-  state.lastRoll = nextState.lastRoll ?? null;
-  state.lastCard = nextState.lastCard || { text: 'Roll the dice to begin.' };
-  state.winner = nextState.winner ?? null;
-  state.feedback = nextState.feedback ?? null;
-  state.onlineCount = state.players.length;
 };
 
 window.saveRoomState = async function () {
@@ -158,10 +149,7 @@ window.startPolling = function () {
   clearInterval(window.pollTimer);
   window.pollTimer = setInterval(() => {
     if (state.entered) {
-      window.runSafe(
-        () => window.refreshFromServer(),
-        'Could not refresh room.'
-      );
+      window.runSafe(() => window.refreshFromServer(), 'Could not refresh room.');
     }
   }, 1500);
 };
