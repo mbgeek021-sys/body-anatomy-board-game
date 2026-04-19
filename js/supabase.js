@@ -44,7 +44,7 @@ window.runSafe = async function(fn, fallback='Something failed.'){
   try {
     return await fn();
   } catch (error) {
-    console.error(error);
+    console.error('Supabase/Game error:', error);
     window.setStatus(error?.message || fallback, true);
     return null;
   }
