@@ -91,11 +91,11 @@ window.joinRoomStateOnly = async function () {
   };
 
   let players = Array.isArray(roomState.players) ? [...roomState.players] : [];
-  const existingIndex = players.findIndex((p) => p.ownerId === window.clientId);
+  const idx = players.findIndex((p) => p.ownerId === window.clientId);
 
-  if (existingIndex >= 0) {
-    players[existingIndex] = {
-      ...players[existingIndex],
+  if (idx >= 0) {
+    players[idx] = {
+      ...players[idx],
       name: state.lobbyName
     };
   } else {
@@ -116,6 +116,9 @@ window.joinRoomStateOnly = async function () {
     .eq('room_code', state.roomCode);
 
   if (error) throw error;
+
+  state.players = normalizePlayers(nextState.players);
+  state.onlineCount = state.players.length;
 };
 
 window.saveRoomState = async function () {
