@@ -9,7 +9,7 @@ window.APP_CONFIG = {
     playerName: 'anatomy-board-player-name'
   },
   SUPABASE_CONFIG: {
-    url: 'https://mlrdtescqjfjlwasqtbv.supabase.co',
-    anonKey: 'sb_publishableyfFu3iuFr8WetM-1Fz6JA_NGwi7_Z5'
+  url: 'https://mlrdtescqjfjlwasqtbv.supabase.co',
+  anonKey: 'sb_publishable_yfFu3iuFr8WetM_-1Fz6JA_NGwi7_Z5'
   }
 };
