@@ -1,3 +1,12 @@
+window.withTimeout = function(promise, ms = 8000){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Supabase request timed out.')), ms)
+    )
+  ]);
+};
+
 window.enterRoom = async function(){
   return await window.runSafe(async () => {
     state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
@@ -9,21 +18,22 @@ window.enterRoom = async function(){
     state.connectionLabel = 'Connecting Supabase...';
     window.safeRender();
 
-    await window.ensureRoomExists();
+    await window.withTimeout(window.ensureRoomExists());
     state.connectionLabel = 'Room ready...';
     window.safeRender();
 
-    await window.upsertPlayerRecord();
+    await window.withTimeout(window.upsertPlayerRecord());
     state.connectionLabel = 'Player added...';
     window.safeRender();
 
-    await window.syncPlayersIntoRoomState();
-    state.connectionLabel = 'Syncing room...';
+    await window.withTimeout(window.syncPlayersIntoRoomState());
+    state.connectionLabel = 'Sync complete...';
     window.safeRender();
 
-    await window.refreshFromServer();
-
     state.entered = true;
+    window.safeRender();
+
+    await window.withTimeout(window.refreshFromServer());
     window.startPolling();
 
     state.connectionLabel = 'Supabase polling live';
