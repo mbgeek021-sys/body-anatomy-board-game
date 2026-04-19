@@ -24,19 +24,6 @@ window.serializeState = function () {
   };
 };
 
-window.applyRoomState = function (roomState) {
-  state.players = normalizePlayers(roomState.players || []);
-  state.currentPlayerIndex = Math.min(
-    roomState.currentPlayerIndex || 0,
-    Math.max(0, state.players.length - 1)
-  );
-  state.lastRoll = roomState.lastRoll ?? null;
-  state.lastCard = roomState.lastCard || { text: 'Roll the dice to begin.' };
-  state.winner = roomState.winner ?? null;
-  state.feedback = roomState.feedback ?? null;
-  state.onlineCount = state.players.length || 0;
-};
-
 window.setStatus = function (message, isError = false) {
   if (isError) {
     state.connectionLabel = `Supabase error: ${message}`;
@@ -93,53 +80,57 @@ window.ensureRoomExists = async function () {
   return await window.fetchRoom();
 };
 
-window.upsertPlayerRecord = async function () {
-  const playerName =
-    state.lobbyName ||
-    localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.playerName) ||
-    'Player';
+window.joinRoomStateOnly = async function () {
+  const room = await window.fetchRoom();
+  const roomState = room?.state_json || {
+    players: [],
+    currentPlayerIndex: 0,
+    lastRoll: null,
+    lastCard: { text: 'Roll the dice to begin.' },
+    winner: null,
+    feedback: null
+  };
 
-  const deleteResult = await sb
-    .from('players')
-    .delete()
-    .eq('room_code', state.roomCode)
-    .eq('client_id', window.clientId);
+  let players = Array.isArray(roomState.players) ? [...roomState.players] : [];
+  const existingIndex = players.findIndex((p) => p.ownerId === window.clientId);
 
-  if (deleteResult.error) {
-    throw deleteResult.error;
+  if (existingIndex >= 0) {
+    players[existingIndex] = {
+      ...players[existingIndex],
+      name: state.lobbyName
+    };
+  } else {
+    players.push(window.createBasePlayer(window.clientId, state.lobbyName));
   }
 
-  const insertResult = await sb
-    .from('players')
-    .insert({
-      room_code: state.roomCode,
-      client_id: window.clientId,
-      player_name: playerName
-    });
+  const nextState = {
+    ...roomState,
+    players
+  };
 
-  if (insertResult.error) {
-    throw insertResult.error;
-  }
-
-  return true;
-};
-
-window.fetchPlayers = async function () {
-  const { data, error } = await sb
-    .from('players')
-    .select('*')
-    .eq('room_code', state.roomCode)
-    .order('joined_at', { ascending: true });
+  const { error } = await sb
+    .from('rooms')
+    .update({
+      state_json: nextState,
+      updated_at: new Date().toISOString()
+    })
+    .eq('room_code', state.roomCode);
 
   if (error) throw error;
-  return data || [];
+
+  state.players = normalizePlayers(nextState.players);
+  state.currentPlayerIndex = nextState.currentPlayerIndex || 0;
+  state.lastRoll = nextState.lastRoll ?? null;
+  state.lastCard = nextState.lastCard || { text: 'Roll the dice to begin.' };
+  state.winner = nextState.winner ?? null;
+  state.feedback = nextState.feedback ?? null;
+  state.onlineCount = state.players.length;
 };
 
 window.saveRoomState = async function () {
   const { error } = await sb
     .from('rooms')
     .update({
-      host_id: state.players[0]?.ownerId || window.clientId,
       state_json: window.serializeState(),
       updated_at: new Date().toISOString()
     })
@@ -150,30 +141,15 @@ window.saveRoomState = async function () {
 
 window.refreshFromServer = async function () {
   const room = await window.fetchRoom();
-  const rows = await window.fetchPlayers();
+  const roomState = room?.state_json || {};
 
-  const namesByOwner = new Map(rows.map((r) => [r.client_id, r.player_name]));
-
-  let basePlayers = [];
-  if (room?.state_json?.players?.length) {
-    basePlayers = room.state_json.players.map((p) => ({
-      ...p,
-      name: namesByOwner.get(p.ownerId) || p.name
-    }));
-  } else {
-    basePlayers = rows.map((r) =>
-      window.createBasePlayer(r.client_id, r.player_name)
-    );
-  }
-
-  state.players = normalizePlayers(basePlayers);
-  state.onlineCount = rows.length;
-  state.currentPlayerIndex = room?.state_json?.currentPlayerIndex || 0;
-  state.lastRoll = room?.state_json?.lastRoll ?? null;
-  state.lastCard =
-    room?.state_json?.lastCard || { text: 'Roll the dice to begin.' };
-  state.winner = room?.state_json?.winner ?? null;
-  state.feedback = room?.state_json?.feedback ?? null;
+  state.players = normalizePlayers(roomState.players || []);
+  state.currentPlayerIndex = roomState.currentPlayerIndex || 0;
+  state.lastRoll = roomState.lastRoll ?? null;
+  state.lastCard = roomState.lastCard || { text: 'Roll the dice to begin.' };
+  state.winner = roomState.winner ?? null;
+  state.feedback = roomState.feedback ?? null;
+  state.onlineCount = state.players.length;
 
   window.safeRender();
 };
@@ -187,5 +163,5 @@ window.startPolling = function () {
         'Could not refresh room.'
       );
     }
-  }, 2000);
+  }, 1500);
 };
