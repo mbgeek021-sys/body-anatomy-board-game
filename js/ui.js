@@ -14,13 +14,6 @@ window.saveNameQuietly = function(value){
 
 window.commitNameChange = async function(value){
   window.saveNameQuietly(value);
-
-  if(state.entered){
-    await window.runSafe(async()=>{
-      await window.upsertPlayerRecord();
-      await window.syncPlayersIntoRoomState();
-    },'Could not save player name.');
-  }
 };
 
 window.makeNewCode = function(){
@@ -46,7 +39,6 @@ window.handleStartRoomClick = async function(){
     }
 
     await window.enterRoom();
-
   }catch(err){
     console.error(err);
     state.connectionLabel = 'Start failed: ' + (err?.message || 'Unknown error');
@@ -54,22 +46,13 @@ window.handleStartRoomClick = async function(){
   }
 };
 
-window.startTrivia = function(){
-  state.trivia = TRIVIA_QUESTIONS[Math.floor(Math.random()*TRIVIA_QUESTIONS.length)];
-  state.timer = 30;
-  state.feedback = null;
-  window.safeRender();
-};
-
 window.lobbyScreen = function(){
 return `
 <div class="screen">
   <div class="lobby-wrap">
-
     <div class="lobby-left">
       <div class="brand">
         <div class="logo">🫀</div>
-
         <div>
           <div class="domain">${window.APP_CONFIG.SITE_DOMAIN}</div>
           <div class="title">${window.APP_CONFIG.GAME_TITLE}</div>
@@ -82,11 +65,9 @@ return `
         <div style="text-align:center;font-size:28px;font-weight:900">
           Join at ${window.APP_CONFIG.SITE_DOMAIN}
         </div>
-
         <div style="text-align:center;font-size:18px;color:#63747e;margin-top:8px">
           with your anatomy room code
         </div>
-
         <div class="code-big">
           <div class="small">ANATOMY ROOM CODE</div>
           <div class="code">${state.roomCode}</div>
@@ -95,7 +76,6 @@ return `
     </div>
 
     <div class="lobby-right glass">
-
       <div>
         <div class="lobby-tag">LOBBY</div>
         <div class="lobby-title">Waiting for participants</div>
@@ -126,21 +106,13 @@ return `
       </div>
 
       <div class="entry-actions">
-        <button class="btn btn-white click-btn"
-          onclick="window.makeNewCode()">
-          New Code
-        </button>
-
-        <button class="btn btn-main click-btn"
-          onclick="window.handleStartRoomClick()">
-          Start Room
-        </button>
+        <button class="btn btn-white click-btn" onclick="window.makeNewCode()">New Code</button>
+        <button class="btn btn-main click-btn" onclick="window.handleStartRoomClick()">Start Room</button>
       </div>
 
       <div class="mini-box" style="margin-top:14px">
         ${state.connectionLabel}
       </div>
-
     </div>
   </div>
 </div>
@@ -148,222 +120,69 @@ return `
 };
 
 window.gameScreen = function(){
-
-const cp = window.currentPlayer();
-const mine = window.myPlayer();
-
-const myTurn = cp && mine && cp.ownerId === mine.ownerId;
-
 return `
 <div class="screen">
+  <div class="glass" style="max-width:1100px;margin:0 auto;padding:32px;border-radius:28px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div class="domain" style="color:#8be4d8">${window.APP_CONFIG.SITE_DOMAIN}</div>
+        <div class="title" style="font-size:42px;">Joined Room</div>
+        <div class="subtitle">Room: ${window.escapeHtml(state.roomCode)}</div>
+      </div>
+      <button class="btn btn-white click-btn" onclick="window.goBackHome()">Back</button>
+    </div>
 
-<div class="game-layout">
-
-<div class="topbar glass">
-
-<div class="topbar-left">
-<div class="logo" style="width:58px;height:58px;border-radius:18px">🫀</div>
-
-<div>
-<div class="domain" style="color:#8be4d8">${window.APP_CONFIG.SITE_DOMAIN}</div>
-<div class="topbar-meta">${window.APP_CONFIG.SUBTITLE}</div>
-<div class="topbar-meta">${window.APP_CONFIG.SCHOOL}</div>
-<div class="topbar-title">${window.APP_CONFIG.GAME_TITLE}</div>
-</div>
-</div>
-
-<div class="chip-row">
-<div class="chip">Room: ${state.roomCode}</div>
-<div class="chip alt">${state.onlineCount} Players</div>
-<div class="chip">${state.connectionLabel}</div>
-
-<button class="btn btn-small click-btn"
-onclick="window.goBackHome()">
-Back
-</button>
-</div>
-
-</div>
-
-<div class="board-panel">
-${window.boardMarkup()}
-</div>
-
-<div class="hud-wrap">
-
-<div class="hud-card">
-<div class="hud-title">Current Turn</div>
-
-<div class="turn-hero">
-<div style="font-size:13px;opacity:.8">
-${myTurn?'Your turn':'Wait for your turn'}
-</div>
-
-<h3>
-${state.winner
-? window.escapeHtml(state.winner)+' wins!'
-: window.escapeHtml(window.getPlayerName(cp))}
-</h3>
-
-<p>Last Roll: ${state.lastRoll ?? '-'}</p>
-</div>
-</div>
-
-<div class="hud-card">
-<div class="hud-title">Game Actions</div>
-
-<div class="controls-grid">
-
-<button class="btn btn-teal click-btn"
-onclick="window.runSafe(()=>window.handleRoll(),'Roll failed.')"
-${state.winner||state.trivia||state.isRolling||!myTurn?'disabled':''}>
-${state.isRolling?'🎲 Rolling...':'🎲 Roll'}
-</button>
-
-<button class="btn btn-rose click-btn"
-onclick="window.runSafe(()=>window.resetGame(),'Reset failed.')">
-↻ Reset
-</button>
-
-<button class="btn btn-blue click-btn"
-onclick="window.runSafe(()=>window.copyShareLink(),'Share failed.')">
-⤴ Share
-</button>
-
-<button class="btn btn-green click-btn"
-onclick="window.makeNewCode()">
-New Code
-</button>
-
-</div>
-
-<div style="margin-top:14px">
-
-${state.feedback
-? `<div class="feedback ${state.feedback.ok?'good':'bad'}">${window.escapeHtml(state.feedback.text)}</div>`
-: ''}
-
-<div class="action-box">
-${window.escapeHtml(state.lastCard?.text || 'Roll the dice to begin.')}
-</div>
-
-</div>
-</div>
-
-<div class="hud-card">
-<div class="hud-title">Players</div>
-
-<div class="players-strip">
-
-${state.players.map(player=>`
-<div class="player-card">
-
-<div class="player-top">
-<div class="avatar">${window.getPlayerToken(player.id-1)}</div>
-<div style="font-weight:800;flex:1">
-${window.escapeHtml(window.getPlayerName(player))}
-</div>
-</div>
-
-<div style="font-size:12px;color:#c9d6d8">
-${window.escapeHtml(SPACES[player.position].name)}
-</div>
-
-</div>
-`).join('')}
-
-</div>
-</div>
-
-</div>
-</div>
+    <div style="margin-top:24px;padding:20px;border-radius:20px;background:rgba(255,255,255,.05);">
+      <div style="font-size:24px;font-weight:900;">You made it into the game screen.</div>
+      <div style="margin-top:10px;color:#c4d7df;">If you can see this, the Start Room button works and the real problem is in board/game rendering.</div>
+      <div style="margin-top:18px;font-weight:800;">Status: ${window.escapeHtml(state.connectionLabel)}</div>
+      <div style="margin-top:8px;font-weight:800;">Player: ${window.escapeHtml(state.lobbyName)}</div>
+      <div style="margin-top:8px;font-weight:800;">Players loaded: ${Array.isArray(state.players) ? state.players.length : 0}</div>
+    </div>
+  </div>
 </div>
 `;
 };
 
 window.attachEvents = function(){
+  const joinInput = document.getElementById('joinCodeInput');
+  if(joinInput && !joinInput.dataset.bound){
+    joinInput.dataset.bound='1';
+    joinInput.addEventListener('input',e=>{
+      state.joinCode = e.target.value.toUpperCase();
+    });
+  }
 
-const joinInput = document.getElementById('joinCodeInput');
-
-if(joinInput && !joinInput.dataset.bound){
-  joinInput.dataset.bound='1';
-
-  joinInput.addEventListener('input',e=>{
-    state.joinCode = e.target.value.toUpperCase();
-  });
-}
-
-const nameInput = document.getElementById('playerNameInput');
-
-if(nameInput && !nameInput.dataset.bound){
-  nameInput.dataset.bound='1';
-
-  nameInput.addEventListener('input',e=>{
-    window.saveNameQuietly(e.target.value);
-
-    clearTimeout(window.nameSaveTimer);
-
-    window.nameSaveTimer = setTimeout(()=>{
-      window.commitNameChange(e.target.value);
-    },400);
-  });
-}
-
+  const nameInput = document.getElementById('playerNameInput');
+  if(nameInput && !nameInput.dataset.bound){
+    nameInput.dataset.bound='1';
+    nameInput.addEventListener('input',e=>{
+      window.saveNameQuietly(e.target.value);
+    });
+  }
 };
 
-window.tickTrivia = function(){
-
-if(!state.trivia) return;
-
-state.timer--;
-
-if(state.timer<=0){
-  state.lastCard = {text:'Time is up. No trivia bonus.'};
-  state.trivia = null;
-  state.timer = 30;
-}
-
-window.safeRender();
-};
+window.tickTrivia = function(){};
 
 window.safeRender = function(){
+  if(window.isRendering) return;
+  window.isRendering = true;
 
-if(window.isRendering) return;
+  requestAnimationFrame(()=>{
+    document.getElementById('app').innerHTML =
+      state.entered ? window.gameScreen() : window.lobbyScreen();
 
-window.isRendering = true;
-
-requestAnimationFrame(()=>{
-
-document.getElementById('app').innerHTML =
-state.entered
-? window.gameScreen()
-: window.lobbyScreen();
-
-window.attachEvents();
-
-window.isRendering = false;
-
-});
+    window.attachEvents();
+    window.isRendering = false;
+  });
 };
 
 window.showFatalError = function(message){
-
-document.getElementById('app').innerHTML = `
-<div class="screen">
-<div style="
-max-width:900px;
-margin:0 auto;
-padding:24px;
-border-radius:28px;
-background:rgba(12,25,40,.95);
-border:1px solid rgba(255,255,255,.1);
-">
-
-<h1>Something broke</h1>
-<p>${window.escapeHtml(message)}</p>
-
-</div>
-</div>
-`;
-
+  document.getElementById('app').innerHTML = `
+  <div class="screen">
+    <div style="max-width:900px;margin:0 auto;padding:24px;border-radius:28px;background:rgba(12,25,40,.95);border:1px solid rgba(255,255,255,.1);">
+      <h1>Something broke</h1>
+      <p>${window.escapeHtml(message)}</p>
+    </div>
+  </div>`;
 };
