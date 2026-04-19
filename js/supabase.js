@@ -2,7 +2,7 @@ const { SUPABASE_CONFIG } = window.APP_CONFIG;
 window.sb = null;
 window.pollTimer = null;
 
-window.initSupabase = function(){
+window.initSupabase = function () {
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     throw new Error('Supabase library failed to load.');
   }
@@ -13,7 +13,7 @@ window.initSupabase = function(){
   );
 };
 
-window.serializeState = function(){
+window.serializeState = function () {
   return {
     players: state.players,
     currentPlayerIndex: state.currentPlayerIndex,
@@ -24,7 +24,7 @@ window.serializeState = function(){
   };
 };
 
-window.applyRoomState = function(roomState){
+window.applyRoomState = function (roomState) {
   state.players = normalizePlayers(roomState.players || []);
   state.currentPlayerIndex = Math.min(
     roomState.currentPlayerIndex || 0,
@@ -37,7 +37,7 @@ window.applyRoomState = function(roomState){
   state.onlineCount = state.players.length || 0;
 };
 
-window.setStatus = function(message, isError = false){
+window.setStatus = function (message, isError = false) {
   if (isError) {
     state.connectionLabel = `Supabase error: ${message}`;
     state.lastCard = { text: message };
@@ -47,7 +47,7 @@ window.setStatus = function(message, isError = false){
   window.safeRender();
 };
 
-window.runSafe = async function(fn, fallback = 'Something failed.'){
+window.runSafe = async function (fn, fallback = 'Something failed.') {
   try {
     return await fn();
   } catch (error) {
@@ -59,7 +59,7 @@ window.runSafe = async function(fn, fallback = 'Something failed.'){
   }
 };
 
-window.fetchRoom = async function(){
+window.fetchRoom = async function () {
   const { data, error } = await sb
     .from('rooms')
     .select('*')
@@ -70,7 +70,7 @@ window.fetchRoom = async function(){
   return data;
 };
 
-window.ensureRoomExists = async function(){
+window.ensureRoomExists = async function () {
   const existing = await window.fetchRoom();
   if (existing) return existing;
 
@@ -93,7 +93,7 @@ window.ensureRoomExists = async function(){
   return await window.fetchRoom();
 };
 
-window.upsertPlayerRecord = async function(){
+window.upsertPlayerRecord = async function () {
   const playerName =
     state.lobbyName ||
     localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.playerName) ||
@@ -124,7 +124,7 @@ window.upsertPlayerRecord = async function(){
   return true;
 };
 
-window.fetchPlayers = async function(){
+window.fetchPlayers = async function () {
   const { data, error } = await sb
     .from('players')
     .select('*')
@@ -135,11 +135,11 @@ window.fetchPlayers = async function(){
   return data || [];
 };
 
-window.saveRoomState = async function(){
+window.saveRoomState = async function () {
   const { error } = await sb
     .from('rooms')
     .update({
-      host_id: (state.players[0]?.ownerId || window.clientId),
+      host_id: state.players[0]?.ownerId || window.clientId,
       state_json: window.serializeState(),
       updated_at: new Date().toISOString()
     })
@@ -148,38 +148,44 @@ window.saveRoomState = async function(){
   if (error) throw error;
 };
 
-window.refreshFromServer = async function(){
+window.refreshFromServer = async function () {
   const room = await window.fetchRoom();
   const rows = await window.fetchPlayers();
 
-  const namesByOwner = new Map(rows.map(r => [r.client_id, r.player_name]));
+  const namesByOwner = new Map(rows.map((r) => [r.client_id, r.player_name]));
 
   let basePlayers = [];
   if (room?.state_json?.players?.length) {
-    basePlayers = room.state_json.players.map(p => ({
+    basePlayers = room.state_json.players.map((p) => ({
       ...p,
       name: namesByOwner.get(p.ownerId) || p.name
     }));
   } else {
-    basePlayers = rows.map(r => window.createBasePlayer(r.client_id, r.player_name));
+    basePlayers = rows.map((r) =>
+      window.createBasePlayer(r.client_id, r.player_name)
+    );
   }
 
   state.players = normalizePlayers(basePlayers);
   state.onlineCount = rows.length;
   state.currentPlayerIndex = room?.state_json?.currentPlayerIndex || 0;
   state.lastRoll = room?.state_json?.lastRoll ?? null;
-  state.lastCard = room?.state_json?.lastCard || { text: 'Roll the dice to begin.' };
+  state.lastCard =
+    room?.state_json?.lastCard || { text: 'Roll the dice to begin.' };
   state.winner = room?.state_json?.winner ?? null;
   state.feedback = room?.state_json?.feedback ?? null;
 
   window.safeRender();
 };
 
-window.startPolling = function(){
+window.startPolling = function () {
   clearInterval(window.pollTimer);
   window.pollTimer = setInterval(() => {
     if (state.entered) {
-      window.runSafe(() => window.refreshFromServer(), 'Could not refresh room.');
+      window.runSafe(
+        () => window.refreshFromServer(),
+        'Could not refresh room.'
+      );
     }
   }, 2000);
 };
