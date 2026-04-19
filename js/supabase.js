@@ -46,6 +46,8 @@ window.runSafe = async function(fn, fallback='Something failed.'){
   } catch (error) {
     console.error('Supabase/Game error:', error);
     window.setStatus(error?.message || fallback, true);
+    state.lastCard = { text: error?.message || fallback };
+    window.safeRender();
     return null;
   }
 };
