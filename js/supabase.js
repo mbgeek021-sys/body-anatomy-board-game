@@ -6,6 +6,7 @@ window.initSupabase = function(){
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
     throw new Error('Supabase library failed to load.');
   }
+
   window.sb = window.supabase.createClient(
     SUPABASE_CONFIG.url,
     SUPABASE_CONFIG.anonKey
@@ -98,17 +99,14 @@ window.upsertPlayerRecord = async function(){
     localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.playerName) ||
     'Player';
 
-  const updateResult = await sb
+  const deleteResult = await sb
     .from('players')
-    .update({ player_name: playerName })
+    .delete()
     .eq('room_code', state.roomCode)
-    .eq('client_id', window.clientId)
-    .select();
+    .eq('client_id', window.clientId);
 
-  if (updateResult.error) throw updateResult.error;
-
-  if (updateResult.data && updateResult.data.length > 0) {
-    return updateResult.data;
+  if (deleteResult.error) {
+    throw deleteResult.error;
   }
 
   const insertResult = await sb
@@ -117,12 +115,13 @@ window.upsertPlayerRecord = async function(){
       room_code: state.roomCode,
       client_id: window.clientId,
       player_name: playerName
-    })
-    .select();
+    });
 
-  if (insertResult.error) throw insertResult.error;
+  if (insertResult.error) {
+    throw insertResult.error;
+  }
 
-  return insertResult.data;
+  return true;
 };
 
 window.fetchPlayers = async function(){
