@@ -98,13 +98,31 @@ window.upsertPlayerRecord = async function(){
     localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.playerName) ||
     'Player';
 
-  const { error } = await sb.from('players').upsert({
-    room_code: state.roomCode,
-    client_id: window.clientId,
-    player_name: playerName
-  });
+  const updateResult = await sb
+    .from('players')
+    .update({ player_name: playerName })
+    .eq('room_code', state.roomCode)
+    .eq('client_id', window.clientId)
+    .select();
 
-  if (error) throw error;
+  if (updateResult.error) throw updateResult.error;
+
+  if (updateResult.data && updateResult.data.length > 0) {
+    return updateResult.data;
+  }
+
+  const insertResult = await sb
+    .from('players')
+    .insert({
+      room_code: state.roomCode,
+      client_id: window.clientId,
+      player_name: playerName
+    })
+    .select();
+
+  if (insertResult.error) throw insertResult.error;
+
+  return insertResult.data;
 };
 
 window.fetchPlayers = async function(){
@@ -119,12 +137,14 @@ window.fetchPlayers = async function(){
 };
 
 window.saveRoomState = async function(){
-  const { error } = await sb.from('rooms').upsert({
-    room_code: state.roomCode,
-    host_id: (state.players[0]?.ownerId || window.clientId),
-    state_json: window.serializeState(),
-    updated_at: new Date().toISOString()
-  });
+  const { error } = await sb
+    .from('rooms')
+    .update({
+      host_id: (state.players[0]?.ownerId || window.clientId),
+      state_json: window.serializeState(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('room_code', state.roomCode);
 
   if (error) throw error;
 };
