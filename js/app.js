@@ -1,19 +1,29 @@
 window.enterRoom = async function(){
-  await window.runSafe(async () => {
+  return await window.runSafe(async () => {
     state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
 
     if (!state.lobbyName.trim()) {
       throw new Error('Enter your name first.');
     }
 
-    state.entered = true;
     state.connectionLabel = 'Connecting Supabase...';
     window.safeRender();
 
     await window.ensureRoomExists();
+    state.connectionLabel = 'Room ready...';
+    window.safeRender();
+
     await window.upsertPlayerRecord();
+    state.connectionLabel = 'Player added...';
+    window.safeRender();
+
     await window.syncPlayersIntoRoomState();
+    state.connectionLabel = 'Syncing room...';
+    window.safeRender();
+
     await window.refreshFromServer();
+
+    state.entered = true;
     window.startPolling();
 
     state.connectionLabel = 'Supabase polling live';
