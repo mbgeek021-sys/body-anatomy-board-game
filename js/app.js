@@ -8,44 +8,32 @@ window.withTimeout = function(promise, ms = 5000){
 };
 
 window.enterRoom = async function(){
-  return await window.runSafe(async ()=>{
-
+  return await window.runSafe(async () => {
     state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
 
-    if(!state.lobbyName.trim()){
+    if (!state.lobbyName.trim()) {
       throw new Error('Enter your name first.');
     }
 
-    state.connectionLabel = 'Connecting...';
+    state.connectionLabel = 'Connecting Supabase...';
     window.safeRender();
 
     await window.withTimeout(window.ensureRoomExists());
-
     state.connectionLabel = 'Room ready...';
     window.safeRender();
 
     await window.withTimeout(window.upsertPlayerRecord());
-
-    state.connectionLabel = 'Entering room...';
+    state.connectionLabel = 'Player added...';
     window.safeRender();
 
-    // FORCE ENTER WITHOUT FETCHING PLAYERS
     state.entered = true;
-
-    // make local player instantly
-    state.players = [
-      window.createBasePlayer(window.clientId, state.lobbyName)
-    ];
-
+    state.players = [window.createBasePlayer(window.clientId, state.lobbyName)];
     state.onlineCount = 1;
-
     window.safeRender();
 
     window.startPolling();
-
     state.connectionLabel = 'Live sync active';
     window.safeRender();
-
   }, 'Could not join room.');
 };
 
