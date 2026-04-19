@@ -32,7 +32,7 @@ window.applyRoomState = function(roomState){
 
 window.setStatus = function(message, isError=false){
   if (isError) {
-    state.connectionLabel = 'Supabase error';
+    state.connectionLabel = `Supabase error: ${message}`;
     state.lastCard = { text: message };
   } else {
     state.connectionLabel = message;
