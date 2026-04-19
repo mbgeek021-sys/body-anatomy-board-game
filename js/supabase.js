@@ -1,0 +1,123 @@
+const { SUPABASE_CONFIG } = window.APP_CONFIG;
+window.sb = null;
+window.pollTimer = null;
+
+window.initSupabase = function(){
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    throw new Error('Supabase library failed to load.');
+  }
+  window.sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+};
+
+window.serializeState = function(){
+  return {
+    players: state.players,
+    currentPlayerIndex: state.currentPlayerIndex,
+    lastRoll: state.lastRoll,
+    lastCard: state.lastCard,
+    winner: state.winner,
+    feedback: state.feedback
+  };
+};
+
+window.applyRoomState = function(roomState){
+  state.players = normalizePlayers(roomState.players || []);
+  state.currentPlayerIndex = Math.min(roomState.currentPlayerIndex || 0, Math.max(0, state.players.length - 1));
+  state.lastRoll = roomState.lastRoll ?? null;
+  state.lastCard = roomState.lastCard || { text: 'Roll the dice to begin.' };
+  state.winner = roomState.winner ?? null;
+  state.feedback = roomState.feedback ?? null;
+  state.onlineCount = state.players.length || 0;
+};
+
+window.setStatus = function(message, isError=false){
+  if (isError) {
+    state.connectionLabel = 'Supabase error';
+    state.lastCard = { text: message };
+  } else {
+    state.connectionLabel = message;
+  }
+  window.safeRender();
+};
+
+window.runSafe = async function(fn, fallback='Something failed.'){
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(error);
+    window.setStatus(error?.message || fallback, true);
+    return null;
+  }
+};
+
+window.fetchRoom = async function(){
+  const { data, error } = await sb.from('rooms').select('*').eq('room_code', state.roomCode).maybeSingle();
+  if (error) throw error;
+  return data;
+};
+
+window.ensureRoomExists = async function(){
+  const existing = await window.fetchRoom();
+  if (existing) return existing;
+  const starter = { players: [], currentPlayerIndex: 0, lastRoll: null, lastCard: { text: 'Roll the dice to begin.' }, winner: null, feedback: null };
+  const { error } = await sb.from('rooms').insert({ room_code: state.roomCode, host_id: window.clientId, state_json: starter });
+  if (error) throw error;
+  return await window.fetchRoom();
+};
+
+window.upsertPlayerRecord = async function(){
+  const playerName = state.lobbyName || localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.playerName) || 'Player';
+  const { error } = await sb.from('players').upsert({ room_code: state.roomCode, client_id: window.clientId, player_name: playerName });
+  if (error) throw error;
+};
+
+window.fetchPlayers = async function(){
+  const { data, error } = await sb.from('players').select('*').eq('room_code', state.roomCode).order('joined_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+window.saveRoomState = async function(){
+  const { error } = await sb.from('rooms').upsert({
+    room_code: state.roomCode,
+    host_id: (state.players[0]?.ownerId || window.clientId),
+    state_json: window.serializeState(),
+    updated_at: new Date().toISOString()
+  });
+  if (error) throw error;
+};
+
+window.syncPlayersIntoRoomState = async function(){
+  const room = await window.fetchRoom();
+  const baseState = room?.state_json || window.serializeState();
+  const oldByOwner = new Map((baseState.players || []).map(p => [p.ownerId, p]));
+  const rows = await window.fetchPlayers();
+  const merged = rows.map(row =>
+    oldByOwner.get(row.client_id)
+      ? { ...oldByOwner.get(row.client_id), name: row.player_name, ownerId: row.client_id }
+      : { ...window.createBasePlayer(row.client_id, row.player_name) }
+  );
+  const nextState = { ...baseState, players: window.normalizePlayers(merged) };
+  window.applyRoomState(nextState);
+  await window.saveRoomState();
+};
+
+window.refreshFromServer = async function(){
+  const room = await window.fetchRoom();
+  if (room?.state_json) window.applyRoomState(room.state_json);
+  const rows = await window.fetchPlayers();
+  state.onlineCount = rows.length;
+  const namesByOwner = new Map(rows.map(r => [r.client_id, r.player_name]));
+  state.players = normalizePlayers(
+    (state.players.length ? state.players : rows.map(r => window.createBasePlayer(r.client_id, r.player_name)))
+      .map(p => ({ ...p, name: namesByOwner.get(p.ownerId) || p.name }))
+  );
+  window.safeRender();
+};
+
+window.startPolling = function(){
+  clearInterval(window.pollTimer);
+  window.pollTimer = setInterval(() => {
+    if (state.entered) window.runSafe(() => window.refreshFromServer(), 'Could not refresh room.');
+  }, 2000);
+};
