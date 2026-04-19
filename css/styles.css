@@ -107,3 +107,23 @@ button{cursor:pointer}
 @media (max-width:1150px){.hud-wrap{grid-template-columns:1fr 1fr}.players-strip{grid-template-columns:1fr 1fr}.lobby-wrap{grid-template-columns:1fr}}
 @media (max-width:900px){.hud-wrap{grid-template-columns:1fr}.players-strip{grid-template-columns:1fr}.space{width:82px;height:54px}}
 @media (max-width:700px){.screen{padding:10px}.title{font-size:34px}.code-big .code{font-size:50px}.space{width:68px;height:42px;padding:4px}.space-id{font-size:7px}.space-name{font-size:8px}.space-body{font-size:7px}.dice-box{width:132px;height:132px;font-size:66px}}
+
+.click-btn{
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.entry-actions,
+.controls-grid,
+.chip-row{
+  position: relative;
+  z-index: 20;
+}
+
+.lobby-right,
+.hud-card,
+.topbar,
+.board-panel{
+  position: relative;
+}
