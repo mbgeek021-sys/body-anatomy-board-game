@@ -20,17 +20,12 @@ window.enterRoom = async function () {
 
     await window.withTimeout(window.ensureRoomExists());
 
-    state.connectionLabel = 'Room ready...';
+    state.connectionLabel = 'Joining room...';
     window.safeRender();
 
-    await window.withTimeout(window.upsertPlayerRecord());
-
-    state.connectionLabel = 'Entering room...';
-    window.safeRender();
+    await window.withTimeout(window.joinRoomStateOnly());
 
     state.entered = true;
-    state.players = [window.createBasePlayer(window.clientId, state.lobbyName)];
-    state.onlineCount = 1;
     window.safeRender();
 
     window.startPolling();
