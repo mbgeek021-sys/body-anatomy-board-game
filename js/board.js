@@ -60,110 +60,43 @@ window.pulseLanding = function(spaceId){
 
 window.getTileIcon = function(name){
   const map = {
-    'Brain':'🧠',
-    'Brain Stem':'🧠',
-    'Eyes':'👁️',
-    'Teeth':'🦷',
-    'Nasal Cavity':'👃',
-    'Temporal Bone':'💀',
-    'Frontal Bone':'💀',
-    'Cranium':'💀',
-    'Heart':'🫀',
-    'Aorta':'🫀',
-    'Lungs':'🫁',
-    'Bronchi':'🫁',
-    'Trachea':'🫁',
-    'Ribs':'🦴',
-    'Sternum':'🦴',
-    'Clavicle':'🦴',
-    'Scapula':'🦴',
-    'Humerus':'🦴',
-    'Radius':'🦴',
-    'Ulna':'🦴',
-    'Thumb':'✋',
-    'Esophagus':'🥼',
-    'Diaphragm':'🫁',
-    'Stomach':'🍽️',
-    'Liver':'🟤',
-    'Pancreas':'🧬',
-    'Gallbladder':'🟢',
-    'Spleen':'🩸',
-    'Colon':'🧫',
-    'Small Intestine':'🧫',
-    'Appendix':'🧫',
-    'Rectum':'🧫',
-    'Bladder':'💧',
-    'Uterus':'♀️',
-    'Pelvis':'🦴',
-    'Hip Joint':'🦴',
-    'Femur':'🦴',
-    'Hamstrings':'🦵',
-    'Quadriceps':'🦵',
-    'Patella':'🦴',
-    'Fibula':'🦴',
-    'Tibia':'🦴',
-    'Achilles Tendon':'🦶',
-    'Calcaneus':'🦶',
-    'Talus':'🦶',
-    'Metatarsals':'🦶',
-    'Toes':'🦶',
-    'Heel':'🦶',
-    'Start':'⭐'
+    'Brain':'🧠','Brain Stem':'🧠','Eyes':'👁️','Teeth':'🦷','Nasal Cavity':'👃',
+    'Temporal Bone':'💀','Frontal Bone':'💀','Cranium':'💀','Heart':'🫀','Aorta':'🫀',
+    'Lungs':'🫁','Bronchi':'🫁','Trachea':'🫁','Ribs':'🦴','Sternum':'🦴','Clavicle':'🦴',
+    'Scapula':'🦴','Humerus':'🦴','Radius':'🦴','Ulna':'🦴','Thumb':'✋','Esophagus':'🥼',
+    'Diaphragm':'🫁','Stomach':'🍽️','Liver':'🟤','Pancreas':'🧬','Gallbladder':'🟢',
+    'Spleen':'🩸','Colon':'🧫','Small Intestine':'🧫','Appendix':'🧫','Rectum':'🧫',
+    'Bladder':'💧','Uterus':'♀️','Pelvis':'🦴','Hip Joint':'🦴','Femur':'🦴',
+    'Hamstrings':'🦵','Quadriceps':'🦵','Patella':'🦴','Fibula':'🦴','Tibia':'🦴',
+    'Achilles Tendon':'🦶','Calcaneus':'🦶','Talus':'🦶','Metatarsals':'🦶','Toes':'🦶',
+    'Heel':'🦶','Start':'⭐'
   };
   return map[name] || '🔬';
 };
 
+window.getCornerBadge = function(type){
+  if (type === 'safe') return '🛡️';
+  if (type === 'quarantine') return '🚫';
+  if (type === 'health') return '➕';
+  if (type === 'risk') return '⚠️';
+  if (type === 'chance') return '❓';
+  if (type === 'finish') return '🏁';
+  if (type === 'start') return '▶️';
+  return '';
+};
+
 window.getBoardSpaces = function(){
   const labels = [
-    ['Start','Feet'],
-    ['Heel','Feet'],
-    ['Toes','Feet'],
-    ['Metatarsals','Feet'],
-    ['Talus','Feet'],
-    ['Calcaneus','Feet'],
-    ['Achilles Tendon','Lower Leg'],
-    ['Tibia','Lower Leg'],
-    ['Fibula','Lower Leg'],
-    ['Patella','Knee'],
-    ['Quadriceps','Upper Leg'],
-    ['Hamstrings','Upper Leg'],
-    ['Femur','Upper Leg'],
-    ['Hip Joint','Hip'],
-    ['Pelvis','Pelvis'],
-    ['Bladder','Pelvis'],
-    ['Uterus','Pelvis'],
-    ['Rectum','Digestive'],
-    ['Appendix','Digestive'],
-    ['Colon','Digestive'],
-    ['Small Intestine','Digestive'],
-    ['Gallbladder','Digestive'],
-    ['Liver','Digestive'],
-    ['Pancreas','Digestive'],
-    ['Spleen','Immune'],
-    ['Stomach','Digestive'],
-    ['Esophagus','Upper Body'],
-    ['Diaphragm','Thorax'],
-    ['Aorta','Thorax'],
-    ['Ribs','Thorax'],
-    ['Sternum','Thorax'],
-    ['Lungs','Thorax'],
-    ['Bronchi','Thorax'],
-    ['Trachea','Neck'],
-    ['Heart','Thorax'],
-    ['Clavicle','Shoulder'],
-    ['Scapula','Shoulder'],
-    ['Humerus','Arm'],
-    ['Radius','Forearm'],
-    ['Ulna','Forearm'],
-    ['Thumb','Hand'],
-    ['Eyes','Head'],
-    ['Teeth','Head'],
-    ['Nasal Cavity','Head'],
-    ['Temporal Bone','Head'],
-    ['Frontal Bone','Head'],
-    ['Cranium','Head'],
-    ['Brain Stem','Head'],
-    ['Brain','Finish']
+    ['Start','Feet'],['Heel','Feet'],['Toes','Feet'],['Metatarsals','Feet'],['Talus','Feet'],['Calcaneus','Feet'],
+    ['Achilles Tendon','Lower Leg'],['Tibia','Lower Leg'],['Fibula','Lower Leg'],['Patella','Knee'],['Quadriceps','Upper Leg'],
+    ['Hamstrings','Upper Leg'],['Femur','Upper Leg'],['Hip Joint','Hip'],['Pelvis','Pelvis'],['Bladder','Pelvis'],
+    ['Uterus','Pelvis'],['Rectum','Digestive'],['Appendix','Digestive'],['Colon','Digestive'],['Small Intestine','Digestive'],
+    ['Gallbladder','Digestive'],['Liver','Digestive'],['Pancreas','Digestive'],['Spleen','Immune'],['Stomach','Digestive'],
+    ['Esophagus','Upper Body'],['Diaphragm','Thorax'],['Aorta','Thorax'],['Ribs','Thorax'],['Sternum','Thorax'],
+    ['Lungs','Thorax'],['Bronchi','Thorax'],['Trachea','Neck'],['Heart','Thorax'],['Clavicle','Shoulder'],
+    ['Scapula','Shoulder'],['Humerus','Arm'],['Radius','Forearm'],['Ulna','Forearm'],['Thumb','Hand'],['Eyes','Head'],
+    ['Teeth','Head'],['Nasal Cavity','Head'],['Temporal Bone','Head'],['Frontal Bone','Head'],['Cranium','Head'],
+    ['Brain Stem','Head'],['Brain','Finish']
   ];
 
   const gridSize = 7;
@@ -173,19 +106,11 @@ window.getBoardSpaces = function(){
   while (left <= right && top <= bottom) {
     for (let c = left; c <= right; c++) cells.push([bottom, c]);
     for (let r = bottom - 1; r >= top; r--) cells.push([r, right]);
-    if (top < bottom) {
-      for (let c = right - 1; c >= left; c--) cells.push([top, c]);
-    }
-    if (left < right) {
-      for (let r = top + 1; r <= bottom - 1; r++) cells.push([r, left]);
-    }
-    left++;
-    right--;
-    top++;
-    bottom--;
+    if (top < bottom) for (let c = right - 1; c >= left; c--) cells.push([top, c]);
+    if (left < right) for (let r = top + 1; r <= bottom - 1; r++) cells.push([r, left]);
+    left++; right--; top++; bottom--;
   }
 
-  /* tighter spacing */
   const minX = 14;
   const maxX = 86;
   const minY = 12;
@@ -239,6 +164,7 @@ window.boardMarkup = function(){
     const currentClass = focusId === space.id ? ' current-turn' : '';
     const bg = window.getTileColors(space.type);
     const icon = window.getTileIcon(space.name);
+    const badge = window.getCornerBadge(space.type);
 
     return `
       <div
@@ -254,8 +180,30 @@ window.boardMarkup = function(){
           background:${bg};
           border:2px solid rgba(255,255,255,.18);
           box-shadow:0 10px 22px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.10);
+          position:absolute;
+          overflow:hidden;
         "
       >
+        <div style="
+          position:absolute;
+          top:0;
+          left:8%;
+          width:84%;
+          height:18px;
+          background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0));
+          border-radius:0 0 16px 16px;
+          pointer-events:none;
+        "></div>
+
+        <div style="
+          position:absolute;
+          top:6px;
+          right:6px;
+          font-size:12px;
+          line-height:1;
+          opacity:.95;
+        ">${badge}</div>
+
         <div class="space-id">#${space.id}</div>
         <div style="font-size:18px;line-height:1;margin-bottom:2px;">${icon}</div>
         <div class="space-name" style="font-size:10px;line-height:1.04;">
@@ -330,9 +278,9 @@ window.boardMarkup = function(){
           top:4%;
           transform:translateX(-50%);
           z-index:6;
-          padding:10px 24px;
+          padding:12px 26px;
           border-radius:999px;
-          font-size:22px;
+          font-size:24px;
           font-weight:1000;
           letter-spacing:.04em;
           color:#fff4a5;
