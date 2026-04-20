@@ -46,14 +46,6 @@ window.handleStartRoomClick = async function(){
   }
 };
 
-window.startTrivia = function(){
-  if (!Array.isArray(window.TRIVIA_QUESTIONS) || !window.TRIVIA_QUESTIONS.length) return;
-  state.trivia = window.TRIVIA_QUESTIONS[Math.floor(Math.random() * window.TRIVIA_QUESTIONS.length)];
-  state.timer = 30;
-  state.feedback = null;
-  window.safeRender();
-};
-
 window.getSafeCurrentPlayer = function(){
   if (typeof window.currentPlayer === 'function') {
     try { return window.currentPlayer(); } catch {}
@@ -154,6 +146,40 @@ window.lobbyScreen = function(){
       </div>
     </div>
   </div>
+  `;
+};
+
+window.renderTriviaModal = function(){
+  if (!state.trivia) return '';
+
+  const q = state.trivia;
+  const choices = Array.isArray(q.choices) ? q.choices : [];
+
+  return `
+    <div class="trivia-modal">
+      <div class="trivia-card">
+        <div class="trivia-top">
+          <div class="hud-title" style="margin:0">🧠 Trivia Challenge</div>
+          <div class="pill-time">${state.timer ?? 20}s</div>
+        </div>
+
+        <div class="trivia-q">
+          ${window.escapeHtml(q.q || '')}
+        </div>
+
+        <div class="trivia-grid">
+          ${choices.map(choice => `
+            <button
+              class="btn trivia-choice click-btn"
+              style="background:linear-gradient(135deg,#4f7cff,#7858ff);"
+              onclick="window.submitTrivia(${JSON.stringify(choice).replace(/"/g, '&quot;')})"
+            >
+              ${window.escapeHtml(choice)}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    </div>
   `;
 };
 
@@ -268,6 +294,8 @@ window.gameScreen = function(){
         </div>
       </div>
     </div>
+
+    ${window.renderTriviaModal()}
   </div>
   `;
 };
@@ -296,9 +324,26 @@ window.tickTrivia = function(){
   state.timer--;
 
   if (state.timer <= 0) {
-    state.lastCard = { text:'Time is up. No trivia bonus.' };
+    const players = Array.isArray(state.players) ? state.players : [];
+    const current = players[Math.max(0, Math.min(state.currentPlayerIndex || 0, players.length - 1))];
+
+    if (current) {
+      current.position = Math.max(0, (current.position || 0) - 2);
+      current.score = Math.max(0, (current.score || 0) - 1);
+      state.feedback = { ok:false, text:'Time is up! -1 point and move back 2.' };
+      state.lastCard = { text:`${window.getSafePlayerName(current)} ran out of time and moved back 2 spaces.` };
+    }
+
     state.trivia = null;
     state.timer = 30;
+
+    if (!state.winner && typeof window.advanceTurn === 'function') {
+      window.advanceTurn();
+    }
+
+    if (typeof window.saveRoomState === 'function') {
+      window.runSafe(() => window.saveRoomState(), 'Could not save trivia timeout.');
+    }
   }
 
   window.safeRender();
