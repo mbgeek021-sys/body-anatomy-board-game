@@ -39,7 +39,6 @@ window.showDiceRoll = async function(roll){
   box.textContent = String(roll);
   label.textContent = 'Move!';
   await new Promise(resolve => setTimeout(resolve, 420));
-
   overlay.classList.add('hidden');
 };
 
@@ -51,12 +50,67 @@ window.pulseLanding = function(spaceId){
     el.animate(
       [
         { transform: 'translate(-50%, -50%) scale(1)' },
-        { transform: 'translate(-50%, -50%) scale(1.1)' },
+        { transform: 'translate(-50%, -50%) scale(1.08)' },
         { transform: 'translate(-50%, -50%) scale(1)' }
       ],
-      { duration: 260, easing: 'ease-out' }
+      { duration: 240, easing: 'ease-out' }
     );
   });
+};
+
+window.getTileIcon = function(name){
+  const map = {
+    'Brain':'🧠',
+    'Brain Stem':'🧠',
+    'Eyes':'👁️',
+    'Teeth':'🦷',
+    'Nasal Cavity':'👃',
+    'Temporal Bone':'💀',
+    'Frontal Bone':'💀',
+    'Cranium':'💀',
+    'Heart':'🫀',
+    'Aorta':'🫀',
+    'Lungs':'🫁',
+    'Bronchi':'🫁',
+    'Trachea':'🫁',
+    'Ribs':'🦴',
+    'Sternum':'🦴',
+    'Clavicle':'🦴',
+    'Scapula':'🦴',
+    'Humerus':'🦴',
+    'Radius':'🦴',
+    'Ulna':'🦴',
+    'Thumb':'✋',
+    'Esophagus':'🥼',
+    'Diaphragm':'🫁',
+    'Stomach':'🍽️',
+    'Liver':'🟤',
+    'Pancreas':'🧬',
+    'Gallbladder':'🟢',
+    'Spleen':'🩸',
+    'Colon':'🧫',
+    'Small Intestine':'🧫',
+    'Appendix':'🧫',
+    'Rectum':'🧫',
+    'Bladder':'💧',
+    'Uterus':'♀️',
+    'Pelvis':'🦴',
+    'Hip Joint':'🦴',
+    'Femur':'🦴',
+    'Hamstrings':'🦵',
+    'Quadriceps':'🦵',
+    'Patella':'🦴',
+    'Fibula':'🦴',
+    'Tibia':'🦴',
+    'Achilles Tendon':'🦶',
+    'Calcaneus':'🦶',
+    'Talus':'🦶',
+    'Metatarsals':'🦶',
+    'Toes':'🦶',
+    'Heel':'🦶',
+    'Start':'⭐'
+  };
+  return map[name] || '🔬';
 };
 
 window.getBoardSpaces = function(){
@@ -114,11 +168,7 @@ window.getBoardSpaces = function(){
 
   const gridSize = 7;
   const cells = [];
-
-  let left = 0;
-  let right = gridSize - 1;
-  let top = 0;
-  let bottom = gridSize - 1;
+  let left = 0, right = gridSize - 1, top = 0, bottom = gridSize - 1;
 
   while (left <= right && top <= bottom) {
     for (let c = left; c <= right; c++) cells.push([bottom, c]);
@@ -135,8 +185,9 @@ window.getBoardSpaces = function(){
     bottom--;
   }
 
-  const minX = 10;
-  const maxX = 90;
+  /* tighter spacing */
+  const minX = 14;
+  const maxX = 86;
   const minY = 12;
   const maxY = 88;
   const stepX = (maxX - minX) / (gridSize - 1);
@@ -165,22 +216,14 @@ window.getBoardSpaces = function(){
 
 window.getTileColors = function(type){
   switch (type) {
-    case 'start':
-      return 'linear-gradient(145deg,#28d17c,#13a85f)';
-    case 'finish':
-      return 'linear-gradient(145deg,#d763ff,#8d5cff)';
-    case 'safe':
-      return 'linear-gradient(145deg,#39d5cf,#1aa59d)';
-    case 'health':
-      return 'linear-gradient(145deg,#59b5ff,#2f7cff)';
-    case 'risk':
-      return 'linear-gradient(145deg,#ff729c,#e54a74)';
-    case 'quarantine':
-      return 'linear-gradient(145deg,#ffbe55,#f28a1e)';
-    case 'chance':
-      return 'linear-gradient(145deg,#8f74ff,#6951ef)';
-    default:
-      return 'linear-gradient(145deg,#324966,#24364d)';
+    case 'start': return 'linear-gradient(145deg,#2ed67d,#14a864)';
+    case 'finish': return 'linear-gradient(145deg,#d86aff,#8f5cff)';
+    case 'safe': return 'linear-gradient(145deg,#37d5cf,#1da39a)';
+    case 'health': return 'linear-gradient(145deg,#59b4ff,#2f7cff)';
+    case 'risk': return 'linear-gradient(145deg,#ff759f,#e24c73)';
+    case 'quarantine': return 'linear-gradient(145deg,#ffbf56,#f08a21)';
+    case 'chance': return 'linear-gradient(145deg,#9277ff,#6a51ef)';
+    default: return 'linear-gradient(145deg,#324867,#24364d)';
   }
 };
 
@@ -195,6 +238,7 @@ window.boardMarkup = function(){
     const onSpace = safePlayers.filter(player => player.position === space.id);
     const currentClass = focusId === space.id ? ' current-turn' : '';
     const bg = window.getTileColors(space.type);
+    const icon = window.getTileIcon(space.name);
 
     return `
       <div
@@ -203,19 +247,18 @@ window.boardMarkup = function(){
         style="
           left:${space.x}%;
           top:${space.y}%;
-          width:102px;
-          height:102px;
-          padding:8px;
-          border-radius:24px;
+          width:88px;
+          height:88px;
+          padding:7px;
+          border-radius:22px;
           background:${bg};
           border:2px solid rgba(255,255,255,.18);
-          box-shadow:
-            0 12px 24px rgba(0,0,0,.20),
-            inset 0 1px 0 rgba(255,255,255,.12);
+          box-shadow:0 10px 22px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.10);
         "
       >
         <div class="space-id">#${space.id}</div>
-        <div class="space-name" style="font-size:11px;line-height:1.05;">
+        <div style="font-size:18px;line-height:1;margin-bottom:2px;">${icon}</div>
+        <div class="space-name" style="font-size:10px;line-height:1.04;">
           ${window.escapeHtml(space.name)}
         </div>
         <div class="space-body" style="font-size:8px;opacity:.84;">
@@ -248,8 +291,8 @@ window.boardMarkup = function(){
       class="board-stage"
       style="
         background:
-          radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 30%),
-          linear-gradient(180deg,#a7c9c0 0%, #8fb3aa 100%);
+          radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 28%),
+          linear-gradient(180deg,#a9cbc2 0%, #90b5ac 100%);
       "
     >
       <div
@@ -257,8 +300,8 @@ window.boardMarkup = function(){
           position:absolute;
           left:50%;
           top:50%;
-          width:19%;
-          height:68%;
+          width:18%;
+          height:66%;
           transform:translate(-50%,-50%);
           z-index:0;
           pointer-events:none;
@@ -275,7 +318,7 @@ window.boardMarkup = function(){
             width:100%;
             height:100%;
             object-fit:contain;
-            filter:drop-shadow(0 18px 28px rgba(0,0,0,.22));
+            filter:drop-shadow(0 16px 26px rgba(0,0,0,.18));
           "
         />
       </div>
@@ -284,7 +327,7 @@ window.boardMarkup = function(){
         style="
           position:absolute;
           left:50%;
-          top:4.5%;
+          top:4%;
           transform:translateX(-50%);
           z-index:6;
           padding:10px 24px;
@@ -292,16 +335,16 @@ window.boardMarkup = function(){
           font-size:22px;
           font-weight:1000;
           letter-spacing:.04em;
-          color:#fff3a7;
-          background:linear-gradient(145deg,#d5522e,#f48c2d);
+          color:#fff4a5;
+          background:linear-gradient(145deg,#d4562e,#f28d2d);
           box-shadow:0 10px 24px rgba(0,0,0,.22);
         "
       >
         ANATOMY GO!
       </div>
 
-      <div class="board-label finish" style="top:1.8%;left:50%;transform:translateX(-50%);">FINISH</div>
-      <div class="board-label start" style="bottom:2.5%;left:10%;">START</div>
+      <div class="board-label finish" style="top:1.5%;left:50%;transform:translateX(-50%);">FINISH</div>
+      <div class="board-label start" style="bottom:2.5%;left:14%;">START</div>
 
       ${spacesMarkup}
     </div>
