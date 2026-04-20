@@ -1,32 +1,23 @@
-window.enterRoom = function () {
-  state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
+window.enterRoom = async function () {
+  return await window.runSafe(async () => {
+    state.roomCode = (state.joinCode.trim() || state.roomCode).toUpperCase();
 
-  if (!state.lobbyName.trim()) {
-    state.connectionLabel = 'Enter your name first.';
+    if (!state.lobbyName.trim()) {
+      throw new Error('Enter your name first.');
+    }
+
+    state.connectionLabel = 'Connecting...';
     window.safeRender();
-    return;
-  }
 
-  state.connectionLabel = 'Entering game...';
-
-  state.players = [
-    window.createBasePlayer(window.clientId, state.lobbyName)
-  ];
-  state.onlineCount = 1;
-  state.currentPlayerIndex = 0;
-  state.lastCard = { text: 'Roll the dice to begin.' };
-  state.entered = true;
-
-  window.safeRender();
-
-  window.runSafe(async () => {
     await window.ensureRoomExists();
     await window.joinRoomStateOnly();
-    await window.refreshFromServer();
-    window.startPolling();
+
+    state.entered = true;
     state.connectionLabel = 'Live sync active';
     window.safeRender();
-  }, 'Background sync failed.');
+
+    window.startPolling();
+  }, 'Could not join room.');
 };
 
 window.copyShareLink = async function () {
