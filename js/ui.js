@@ -20,17 +20,20 @@ window.makeNewCode = function(){
   const code = Math.random().toString(36).slice(2, 7).toUpperCase();
   state.roomCode = code;
   state.joinCode = code;
+  window.playClick?.();
   window.safeRender();
 };
 
 window.goBackHome = function(){
   state.entered = false;
   clearInterval(window.pollTimer);
+  window.playClick?.();
   window.safeRender();
 };
 
 window.handleStartRoomClick = async function(){
   try{
+    window.playClick?.();
     state.connectionLabel = 'Start clicked...';
     window.safeRender();
 
@@ -222,6 +225,9 @@ window.gameScreen = function(){
           <div class="chip">Room: ${window.escapeHtml(state.roomCode)}</div>
           <div class="chip alt">${state.onlineCount || 0} Players</div>
           <div class="chip">${window.escapeHtml(state.connectionLabel)}</div>
+          <button class="btn btn-small click-btn" style="background:rgba(255,255,255,.08);color:#fff" onclick="window.toggleAudio()">
+            ${window.audioEnabled ? '🔊 Audio' : '🔇 Muted'}
+          </button>
           <button class="btn btn-small click-btn" style="background:rgba(255,255,255,.08);color:#fff" onclick="window.goBackHome()">Back</button>
         </div>
       </div>
@@ -332,6 +338,7 @@ window.tickTrivia = function(){
       current.score = Math.max(0, (current.score || 0) - 1);
       state.feedback = { ok:false, text:'Time is up! -1 point and move back 2.' };
       state.lastCard = { text:`${window.getSafePlayerName(current)} ran out of time and moved back 2 spaces.` };
+      window.playWrongSound?.();
     }
 
     state.trivia = null;
