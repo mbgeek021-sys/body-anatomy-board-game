@@ -13,6 +13,9 @@ window.enterRoom = async function () {
     await window.joinRoomStateOnly();
 
     state.entered = true;
+    await window.startGameAudio?.();
+    window.playGameStartSound?.();
+
     state.connectionLabel = 'Live sync active';
     window.safeRender();
 
@@ -25,6 +28,7 @@ window.copyShareLink = async function () {
   try {
     await navigator.clipboard.writeText(url);
     state.lastCard = { text: 'Room link copied.' };
+    window.playClick?.();
   } catch {
     state.lastCard = { text: 'Copy failed.' };
   }
