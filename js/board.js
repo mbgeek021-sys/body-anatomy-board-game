@@ -11,15 +11,12 @@ window.createTrailAt = function(space){
   dot.style.height = '14px';
   dot.style.borderRadius = '999px';
   dot.style.transform = 'translate(-50%, -50%)';
-  dot.style.background = 'rgba(255,255,255,.85)';
-  dot.style.boxShadow = '0 0 16px rgba(255,255,255,.75)';
+  dot.style.background = 'rgba(255,255,255,.88)';
+  dot.style.boxShadow = '0 0 16px rgba(255,255,255,.7)';
   dot.style.zIndex = '8';
-
   shell.appendChild(dot);
 
-  setTimeout(() => {
-    dot.remove();
-  }, 500);
+  setTimeout(() => dot.remove(), 500);
 };
 
 window.showDiceRoll = async function(roll){
@@ -114,37 +111,35 @@ window.getBoardSpaces = function(){
     ['Brain','Finish']
   ];
 
+  // TRUE square spiral path starting bottom-left and winding inward
+  const gridSize = 7;
   const cells = [];
-  const size = 7;
-  let top = 0;
-  let bottom = size - 1;
   let left = 0;
-  let right = size - 1;
+  let right = gridSize - 1;
+  let top = 0;
+  let bottom = gridSize - 1;
 
   while (left <= right && top <= bottom) {
-    for (let c = left; c <= right; c++) cells.push([top, c]);
-    for (let r = top + 1; r <= bottom; r++) cells.push([r, right]);
+    for (let c = left; c <= right; c++) cells.push([bottom, c]);          // bottom row left -> right
+    for (let r = bottom - 1; r >= top; r--) cells.push([r, right]);       // right col bottom-1 -> top
     if (top < bottom) {
-      for (let c = right - 1; c >= left; c--) cells.push([bottom, c]);
+      for (let c = right - 1; c >= left; c--) cells.push([top, c]);       // top row right-1 -> left
     }
     if (left < right) {
-      for (let r = bottom - 1; r > top; r--) cells.push([r, left]);
+      for (let r = top + 1; r <= bottom - 1; r++) cells.push([r, left]);  // left col top+1 -> bottom-1
     }
-    top++;
-    bottom--;
     left++;
     right--;
+    top++;
+    bottom--;
   }
-
-  const startIndex = cells.findIndex(([r, c]) => r === size - 1 && c === 0);
-  const ordered = cells.slice(startIndex).concat(cells.slice(0, startIndex));
 
   const minX = 8;
   const maxX = 92;
   const minY = 10;
-  const maxY = 90;
-  const stepX = (maxX - minX) / (size - 1);
-  const stepY = (maxY - minY) / (size - 1);
+  const maxY = 88;
+  const stepX = (maxX - minX) / (gridSize - 1);
+  const stepY = (maxY - minY) / (gridSize - 1);
 
   const typeForIndex = (i, last) => {
     if (i === 0) return 'start';
@@ -157,12 +152,12 @@ window.getBoardSpaces = function(){
     return 'normal';
   };
 
-  return ordered.slice(0, labels.length).map(([r, c], i) => ({
+  return cells.slice(0, labels.length).map(([row, col], i) => ({
     id: i,
     name: labels[i][0],
     body: labels[i][1],
-    x: minX + c * stepX,
-    y: minY + r * stepY,
+    x: minX + col * stepX,
+    y: minY + row * stepY,
     type: typeForIndex(i, labels.length - 1)
   }));
 };
@@ -196,7 +191,7 @@ window.boardMarkup = function(){
 
   const connectors = spaces.slice(0, -1).map((space, index) => {
     const next = spaces[index + 1];
-    return `<line x1="${space.x}" y1="${space.y}" x2="${next.x}" y2="${next.y}" stroke="rgba(255,255,255,.18)" stroke-width="0.55" stroke-linecap="round" />`;
+    return `<line x1="${space.x}" y1="${space.y}" x2="${next.x}" y2="${next.y}" stroke="rgba(255,255,255,.18)" stroke-width="0.65" stroke-linecap="round" />`;
   }).join('');
 
   const spacesMarkup = spaces.map(space => {
@@ -243,7 +238,9 @@ window.boardMarkup = function(){
   const imageUrl = window.APP_CONFIG?.ANATOMY_IMAGE_URL || './body anatomy mib.png';
 
   return `<div class="board-stage" style="background:linear-gradient(180deg,#8db7b0 0%, #789e98 100%);">
-    <svg class="board-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="z-index:1;opacity:.7;">${connectors}</svg>
+    <svg class="board-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="z-index:1;opacity:.7;">
+      ${connectors}
+    </svg>
 
     <div style="
       position:absolute;
@@ -269,7 +266,7 @@ window.boardMarkup = function(){
     <div style="
       position:absolute;
       left:50%;
-      top:6%;
+      top:5.5%;
       transform:translateX(-50%);
       z-index:6;
       padding:8px 20px;
@@ -282,8 +279,8 @@ window.boardMarkup = function(){
       box-shadow:0 10px 24px rgba(0,0,0,.2);
     ">ANATOMY GO!</div>
 
-    <div class="board-label finish" style="top:2.5%;left:50%;transform:translateX(-50%);">Finish</div>
-    <div class="board-label start" style="bottom:2.5%;left:8%;">Start</div>
+    <div class="board-label finish" style="top:2%;left:50%;transform:translateX(-50%);">Finish</div>
+    <div class="board-label start" style="bottom:3%;left:8%;">Start</div>
 
     ${spacesMarkup}
   </div>`;
