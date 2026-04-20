@@ -141,6 +141,7 @@ window.handleRoll = async function(){
   if ((current.skipped || 0) > 0) {
     current.skipped -= 1;
     state.lastCard = { text: `${window.getPlayerName(current)} missed this turn.` };
+    window.playMissTurnSound?.();
     state.players = window.ensurePlayersShape(players);
     window.advanceTurn();
 
@@ -162,6 +163,7 @@ window.handleRoll = async function(){
   try {
     const roll = window.rollDie();
     state.lastRoll = roll;
+    window.playDiceSound?.();
 
     if (typeof window.showDiceRoll === 'function') {
       await window.showDiceRoll(roll);
@@ -182,6 +184,7 @@ window.handleRoll = async function(){
       }
 
       window.safeRender();
+      window.playMoveSound?.();
       await window.delay(180);
     }
 
@@ -226,11 +229,13 @@ window.submitTrivia = async function(choice){
     current.score = (current.score || 0) + 2;
     state.feedback = { ok: true, text: 'Correct! +2 points.' };
     state.lastCard = { text: `${window.getPlayerName(current)} answered correctly and gained 2 points.` };
+    window.playCorrectSound?.();
   } else {
     current.position = Math.max(0, (current.position || 0) - 2);
     current.score = Math.max(0, (current.score || 0) - 1);
     state.feedback = { ok: false, text: 'Wrong! -1 point and move back 2.' };
     state.lastCard = { text: `${window.getPlayerName(current)} missed the question and moved back 2 spaces.` };
+    window.playWrongSound?.();
   }
 
   state.players = window.ensurePlayersShape(players);
