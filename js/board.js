@@ -98,7 +98,6 @@ window.boardMarkup = function(){
 
   const cp = typeof window.currentPlayer === 'function' ? window.currentPlayer() : null;
   const focusId = cp ? cp.position : null;
-
   const safePlayers = Array.isArray(state.players) ? state.players : [];
 
   const spacesMarkup = spaces.map(space => {
@@ -110,9 +109,15 @@ window.boardMarkup = function(){
       <div class="space-name">${window.escapeHtml(space.name)}</div>
       <div class="space-body">${window.escapeHtml(space.body)}</div>
       <div class="space-tokens">
-        ${onSpace.map(player => {
-          const token = typeof window.getPlayerToken === 'function' ? window.getPlayerToken(player.id - 1) : '🙂';
-          const playerName = typeof window.getPlayerName === 'function' ? window.getPlayerName(player) : (player.name || 'Player');
+        ${onSpace.map((player, index) => {
+          const token = typeof window.getSafePlayerToken === 'function'
+            ? window.getSafePlayerToken(index)
+            : '🙂';
+
+          const playerName = typeof window.getSafePlayerName === 'function'
+            ? window.getSafePlayerName(player)
+            : (player?.name || 'Player');
+
           return `<span class="token-with-name"><span class="token-pill">${token}</span><span class="token-name">${window.escapeHtml(playerName)}</span></span>`;
         }).join('')}
       </div>
