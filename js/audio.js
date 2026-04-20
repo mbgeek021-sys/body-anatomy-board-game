@@ -33,7 +33,7 @@ window.resumeAudio = async function(){
   }
 };
 
-window.playTone = async function(freq = 440, duration = 0.15, type = 'sine', volume = 0.08, when = 0){
+window.playTone = async function(freq = 440, duration = 0.15, type = 'sine', volume = 0.48, when = 0){
   if (!window.audioEnabled) return;
 
   const ctx = window.ensureAudio();
@@ -49,7 +49,7 @@ window.playTone = async function(freq = 440, duration = 0.15, type = 'sine', vol
   osc.frequency.setValueAtTime(freq, now);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.31);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
   osc.connect(gain);
