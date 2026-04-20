@@ -15,12 +15,12 @@ window.initSupabase = function () {
 
 window.serializeState = function () {
   return {
-    players: state.players,
-    currentPlayerIndex: state.currentPlayerIndex,
-    lastRoll: state.lastRoll,
-    lastCard: state.lastCard,
-    winner: state.winner,
-    feedback: state.feedback
+    players: state.players || [],
+    currentPlayerIndex: state.currentPlayerIndex || 0,
+    lastRoll: state.lastRoll ?? null,
+    lastCard: state.lastCard || { text: 'Roll the dice to begin.' },
+    winner: state.winner ?? null,
+    feedback: state.feedback ?? null
   };
 };
 
@@ -91,11 +91,11 @@ window.joinRoomStateOnly = async function () {
   };
 
   let players = Array.isArray(roomState.players) ? [...roomState.players] : [];
-  const idx = players.findIndex((p) => p.ownerId === window.clientId);
+  const existingIndex = players.findIndex((p) => p.ownerId === window.clientId);
 
-  if (idx >= 0) {
-    players[idx] = {
-      ...players[idx],
+  if (existingIndex >= 0) {
+    players[existingIndex] = {
+      ...players[existingIndex],
       name: state.lobbyName
     };
   } else {
@@ -118,14 +118,21 @@ window.joinRoomStateOnly = async function () {
   if (error) throw error;
 
   state.players = normalizePlayers(nextState.players);
+  state.currentPlayerIndex = nextState.currentPlayerIndex || 0;
+  state.lastRoll = nextState.lastRoll ?? null;
+  state.lastCard = nextState.lastCard || { text: 'Roll the dice to begin.' };
+  state.winner = nextState.winner ?? null;
+  state.feedback = nextState.feedback ?? null;
   state.onlineCount = state.players.length;
 };
 
 window.saveRoomState = async function () {
+  const payload = window.serializeState();
+
   const { error } = await sb
     .from('rooms')
     .update({
-      state_json: window.serializeState(),
+      state_json: payload,
       updated_at: new Date().toISOString()
     })
     .eq('room_code', state.roomCode);
@@ -151,8 +158,11 @@ window.refreshFromServer = async function () {
 window.startPolling = function () {
   clearInterval(window.pollTimer);
   window.pollTimer = setInterval(() => {
-    if (state.entered) {
-      window.runSafe(() => window.refreshFromServer(), 'Could not refresh room.');
+    if (state.entered && !state.isRolling) {
+      window.runSafe(
+        () => window.refreshFromServer(),
+        'Could not refresh room.'
+      );
     }
   }, 1500);
 };
