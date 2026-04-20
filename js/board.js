@@ -11,7 +11,7 @@ window.createTrailAt = function(space){
   dot.style.height = '14px';
   dot.style.borderRadius = '999px';
   dot.style.transform = 'translate(-50%, -50%)';
-  dot.style.background = 'rgba(255,255,255,.9)';
+  dot.style.background = 'rgba(255,255,255,.92)';
   dot.style.boxShadow = '0 0 18px rgba(255,255,255,.85)';
   dot.style.zIndex = '9';
   shell.appendChild(dot);
@@ -39,6 +39,7 @@ window.showDiceRoll = async function(roll){
   box.textContent = String(roll);
   label.textContent = 'Move!';
   await new Promise(resolve => setTimeout(resolve, 420));
+
   overlay.classList.add('hidden');
 };
 
@@ -50,10 +51,10 @@ window.pulseLanding = function(spaceId){
     el.animate(
       [
         { transform: 'translate(-50%, -50%) scale(1)' },
-        { transform: 'translate(-50%, -50%) scale(1.12)' },
+        { transform: 'translate(-50%, -50%) scale(1.1)' },
         { transform: 'translate(-50%, -50%) scale(1)' }
       ],
-      { duration: 280, easing: 'ease-out' }
+      { duration: 260, easing: 'ease-out' }
     );
   });
 };
@@ -119,11 +120,6 @@ window.getBoardSpaces = function(){
   let top = 0;
   let bottom = gridSize - 1;
 
-  // TRUE square spiral:
-  // bottom row left->right
-  // right col bottom-1->top
-  // top row right-1->left
-  // left col top+1->bottom-1
   while (left <= right && top <= bottom) {
     for (let c = left; c <= right; c++) cells.push([bottom, c]);
     for (let r = bottom - 1; r >= top; r--) cells.push([r, right]);
@@ -139,10 +135,10 @@ window.getBoardSpaces = function(){
     bottom--;
   }
 
-  const minX = 8;
-  const maxX = 92;
-  const minY = 10;
-  const maxY = 90;
+  const minX = 10;
+  const maxX = 90;
+  const minY = 12;
+  const maxY = 88;
   const stepX = (maxX - minX) / (gridSize - 1);
   const stepY = (maxY - minY) / (gridSize - 1);
 
@@ -170,21 +166,21 @@ window.getBoardSpaces = function(){
 window.getTileColors = function(type){
   switch (type) {
     case 'start':
-      return 'linear-gradient(145deg,#2fdc88,#139b63)';
+      return 'linear-gradient(145deg,#28d17c,#13a85f)';
     case 'finish':
-      return 'linear-gradient(145deg,#d65cff,#8c56ff)';
+      return 'linear-gradient(145deg,#d763ff,#8d5cff)';
     case 'safe':
-      return 'linear-gradient(145deg,#39d1c8,#1d9f95)';
+      return 'linear-gradient(145deg,#39d5cf,#1aa59d)';
     case 'health':
-      return 'linear-gradient(145deg,#53a8ff,#2f74e4)';
+      return 'linear-gradient(145deg,#59b5ff,#2f7cff)';
     case 'risk':
-      return 'linear-gradient(145deg,#ff6f97,#df4d72)';
+      return 'linear-gradient(145deg,#ff729c,#e54a74)';
     case 'quarantine':
-      return 'linear-gradient(145deg,#ffb14b,#e07b17)';
+      return 'linear-gradient(145deg,#ffbe55,#f28a1e)';
     case 'chance':
-      return 'linear-gradient(145deg,#7e6dff,#5c4ce2)';
+      return 'linear-gradient(145deg,#8f74ff,#6951ef)';
     default:
-      return 'linear-gradient(145deg,#2d3f5a,#203149)';
+      return 'linear-gradient(145deg,#324966,#24364d)';
   }
 };
 
@@ -193,21 +189,7 @@ window.boardMarkup = function(){
   const cp = typeof window.currentPlayer === 'function' ? window.currentPlayer() : null;
   const focusId = cp ? cp.position : null;
   const safePlayers = Array.isArray(state.players) ? state.players : [];
-
-  const connectors = spaces.slice(0, -1).map((space, index) => {
-    const next = spaces[index + 1];
-    return `
-      <line
-        x1="${space.x}"
-        y1="${space.y}"
-        x2="${next.x}"
-        y2="${next.y}"
-        stroke="rgba(255,255,255,.22)"
-        stroke-width="0.7"
-        stroke-linecap="round"
-      />
-    `;
-  }).join('');
+  const imageUrl = window.APP_CONFIG?.ANATOMY_IMAGE_URL || './body anatomy mib.png';
 
   const spacesMarkup = spaces.map(space => {
     const onSpace = safePlayers.filter(player => player.position === space.id);
@@ -221,15 +203,15 @@ window.boardMarkup = function(){
         style="
           left:${space.x}%;
           top:${space.y}%;
-          width:96px;
-          height:96px;
+          width:102px;
+          height:102px;
           padding:8px;
           border-radius:24px;
           background:${bg};
           border:2px solid rgba(255,255,255,.18);
           box-shadow:
-            0 14px 26px rgba(0,0,0,.22),
-            inset 0 1px 0 rgba(255,255,255,.08);
+            0 12px 24px rgba(0,0,0,.20),
+            inset 0 1px 0 rgba(255,255,255,.12);
         "
       >
         <div class="space-id">#${space.id}</div>
@@ -261,27 +243,21 @@ window.boardMarkup = function(){
     `;
   }).join('');
 
-  const imageUrl = window.APP_CONFIG?.ANATOMY_IMAGE_URL || './body anatomy mib.png';
-
   return `
     <div
       class="board-stage"
       style="
         background:
-          radial-gradient(circle at center, rgba(255,255,255,.08), transparent 32%),
-          linear-gradient(180deg,#92bbb3 0%, #7ca29c 100%);
+          radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 30%),
+          linear-gradient(180deg,#a7c9c0 0%, #8fb3aa 100%);
       "
     >
-      <svg class="board-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style="z-index:1;opacity:.9;">
-        ${connectors}
-      </svg>
-
       <div
         style="
           position:absolute;
           left:50%;
           top:50%;
-          width:20%;
+          width:19%;
           height:68%;
           transform:translate(-50%,-50%);
           z-index:0;
@@ -299,7 +275,7 @@ window.boardMarkup = function(){
             width:100%;
             height:100%;
             object-fit:contain;
-            filter:drop-shadow(0 18px 30px rgba(0,0,0,.22));
+            filter:drop-shadow(0 18px 28px rgba(0,0,0,.22));
           "
         />
       </div>
@@ -316,16 +292,16 @@ window.boardMarkup = function(){
           font-size:22px;
           font-weight:1000;
           letter-spacing:.04em;
-          color:#fff3a6;
-          background:linear-gradient(145deg,#d04b2d,#f1872f);
+          color:#fff3a7;
+          background:linear-gradient(145deg,#d5522e,#f48c2d);
           box-shadow:0 10px 24px rgba(0,0,0,.22);
         "
       >
         ANATOMY GO!
       </div>
 
-      <div class="board-label finish" style="top:2.2%;left:50%;transform:translateX(-50%);">Finish</div>
-      <div class="board-label start" style="bottom:3.2%;left:8%;">Start</div>
+      <div class="board-label finish" style="top:1.8%;left:50%;transform:translateX(-50%);">FINISH</div>
+      <div class="board-label start" style="bottom:2.5%;left:10%;">START</div>
 
       ${spacesMarkup}
     </div>
