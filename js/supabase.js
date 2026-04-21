@@ -1,6 +1,9 @@
 const { SUPABASE_CONFIG } = window.APP_CONFIG;
+
 window.sb = null;
 window.pollTimer = null;
+window.lastServerSnapshot = '';
+window.lastEventIdSeen = null;
 
 window.initSupabase = function () {
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
@@ -13,6 +16,22 @@ window.initSupabase = function () {
   );
 };
 
+window.defaultRoomState = function () {
+  return {
+    players: [],
+    currentPlayerIndex: 0,
+    lastRoll: null,
+    lastCard: { text: 'Roll the dice to begin.' },
+    winner: null,
+    feedback: null,
+    trivia: null,
+    timer: 30,
+    isRolling: false,
+    eventLog: [],
+    activeEvent: null
+  };
+};
+
 window.serializeState = function () {
   return {
     players: state.players || [],
@@ -20,7 +39,12 @@ window.serializeState = function () {
     lastRoll: state.lastRoll ?? null,
     lastCard: state.lastCard || { text: 'Roll the dice to begin.' },
     winner: state.winner ?? null,
-    feedback: state.feedback ?? null
+    feedback: state.feedback ?? null,
+    trivia: state.trivia ?? null,
+    timer: state.timer ?? 30,
+    isRolling: !!state.isRolling,
+    eventLog: Array.isArray(state.eventLog) ? state.eventLog.slice(-25) : [],
+    activeEvent: state.activeEvent || null
   };
 };
 
@@ -59,14 +83,7 @@ window.ensureRoomExists = async function () {
   const existing = await window.fetchRoom();
   if (existing) return existing;
 
-  const starter = {
-    players: [],
-    currentPlayerIndex: 0,
-    lastRoll: null,
-    lastCard: { text: 'Roll the dice to begin.' },
-    winner: null,
-    feedback: null
-  };
+  const starter = window.defaultRoomState();
 
   const { error } = await sb.from('rooms').insert({
     room_code: state.roomCode,
@@ -78,19 +95,74 @@ window.ensureRoomExists = async function () {
   return await window.fetchRoom();
 };
 
-window.joinRoomStateOnly = async function () {
-  const room = await window.fetchRoom();
+window.normalizeServerPlayers = function (players) {
+  const list = Array.isArray(players) ? players : [];
 
-  const roomState = room?.state_json || {
-    players: [],
-    currentPlayerIndex: 0,
-    lastRoll: null,
-    lastCard: { text: 'Roll the dice to begin.' },
-    winner: null,
-    feedback: null
+  if (typeof window.ensurePlayersShape === 'function') {
+    try {
+      return window.ensurePlayersShape(list);
+    } catch {}
+  }
+
+  return list.map((p, i) => ({
+    id: p.id || i + 1,
+    name: p.name || `Player ${i + 1}`,
+    ownerId: p.ownerId || `player-${i + 1}`,
+    position: Number.isFinite(p.position) ? p.position : 0,
+    shields: Number.isFinite(p.shields) ? p.shields : 0,
+    score: Number.isFinite(p.score) ? p.score : 0,
+    skipped: Number.isFinite(p.skipped) ? p.skipped : 0,
+    quarantined: Number.isFinite(p.quarantined) ? p.quarantined : 0,
+    organs: Array.isArray(p.organs) ? p.organs : []
+  }));
+};
+
+window.addRoomEvent = function (message, sound = null) {
+  const event = {
+    id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    at: Date.now(),
+    message,
+    sound
   };
 
-  let players = Array.isArray(roomState.players) ? [...roomState.players] : [];
+  state.activeEvent = event;
+  state.eventLog = [...(state.eventLog || []), event].slice(-25);
+  state.lastCard = { text: message };
+};
+
+window.playNetworkEventSound = function (event) {
+  if (!event || !event.sound) return;
+  if (window.lastEventIdSeen === event.id) return;
+
+  window.lastEventIdSeen = event.id;
+
+  switch (event.sound) {
+    case 'dice':
+      window.playDiceSound?.();
+      break;
+    case 'correct':
+      window.playCorrectSound?.();
+      break;
+    case 'wrong':
+      window.playWrongSound?.();
+      break;
+    case 'skip':
+      window.playMissTurnSound?.();
+      break;
+    case 'start':
+      window.playGameStartSound?.();
+      break;
+    case 'move':
+      window.playMoveSound?.();
+      break;
+  }
+};
+
+window.joinRoomStateOnly = async function () {
+  const room = await window.fetchRoom();
+  const roomState = room?.state_json || window.defaultRoomState();
+
+  let players = window.normalizeServerPlayers(roomState.players);
   const existingIndex = players.findIndex((p) => p.ownerId === window.clientId);
 
   if (existingIndex >= 0) {
@@ -99,12 +171,45 @@ window.joinRoomStateOnly = async function () {
       name: state.lobbyName
     };
   } else {
-    players.push(window.createBasePlayer(window.clientId, state.lobbyName));
+    const newPlayer =
+      typeof window.createBasePlayer === 'function'
+        ? window.createBasePlayer(window.clientId, state.lobbyName)
+        : {
+            id: players.length + 1,
+            name: state.lobbyName,
+            ownerId: window.clientId,
+            position: 0,
+            shields: 0,
+            score: 0,
+            skipped: 0,
+            quarantined: 0,
+            organs: []
+          };
+
+    players.push(newPlayer);
   }
 
+  players = window.normalizeServerPlayers(players);
+
   const nextState = {
+    ...window.defaultRoomState(),
     ...roomState,
-    players
+    players,
+    activeEvent: {
+      id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      at: Date.now(),
+      message: `${state.lobbyName} joined the room.`,
+      sound: 'start'
+    },
+    eventLog: [
+      ...(Array.isArray(roomState.eventLog) ? roomState.eventLog : []),
+      {
+        id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        at: Date.now(),
+        message: `${state.lobbyName} joined the room.`,
+        sound: 'start'
+      }
+    ].slice(-25)
   };
 
   const { error } = await sb
@@ -117,12 +222,26 @@ window.joinRoomStateOnly = async function () {
 
   if (error) throw error;
 
-  state.players = normalizePlayers(nextState.players);
-  state.currentPlayerIndex = nextState.currentPlayerIndex || 0;
-  state.lastRoll = nextState.lastRoll ?? null;
-  state.lastCard = nextState.lastCard || { text: 'Roll the dice to begin.' };
-  state.winner = nextState.winner ?? null;
-  state.feedback = nextState.feedback ?? null;
+  window.applyRoomState(nextState);
+};
+
+window.applyRoomState = function (roomState) {
+  const safe = { ...window.defaultRoomState(), ...(roomState || {}) };
+
+  state.players = window.normalizeServerPlayers(safe.players);
+  state.currentPlayerIndex = Math.max(
+    0,
+    Math.min(safe.currentPlayerIndex || 0, Math.max(0, state.players.length - 1))
+  );
+  state.lastRoll = safe.lastRoll ?? null;
+  state.lastCard = safe.lastCard || { text: 'Roll the dice to begin.' };
+  state.winner = safe.winner ?? null;
+  state.feedback = safe.feedback ?? null;
+  state.trivia = safe.trivia ?? null;
+  state.timer = safe.timer ?? 30;
+  state.isRolling = !!safe.isRolling;
+  state.eventLog = Array.isArray(safe.eventLog) ? safe.eventLog : [];
+  state.activeEvent = safe.activeEvent || null;
   state.onlineCount = state.players.length;
 };
 
@@ -142,15 +261,26 @@ window.saveRoomState = async function () {
 
 window.refreshFromServer = async function () {
   const room = await window.fetchRoom();
-  const roomState = room?.state_json || {};
+  const roomState = room?.state_json || window.defaultRoomState();
 
-  state.players = normalizePlayers(roomState.players || []);
-  state.currentPlayerIndex = roomState.currentPlayerIndex || 0;
-  state.lastRoll = roomState.lastRoll ?? null;
-  state.lastCard = roomState.lastCard || { text: 'Roll the dice to begin.' };
-  state.winner = roomState.winner ?? null;
-  state.feedback = roomState.feedback ?? null;
-  state.onlineCount = state.players.length;
+  const snapshot = JSON.stringify(roomState);
+  if (snapshot === window.lastServerSnapshot) return;
+
+  window.lastServerSnapshot = snapshot;
+
+  const previousRolling = !!state.isRolling;
+  const previousPosition = JSON.stringify((state.players || []).map(p => p.position));
+  const nextPosition = JSON.stringify(((roomState.players || [])).map(p => p.position));
+
+  window.applyRoomState(roomState);
+
+  if (!previousRolling && previousPosition !== nextPosition && !state.trivia) {
+    window.playMoveSound?.();
+  }
+
+  if (state.activeEvent) {
+    window.playNetworkEventSound(state.activeEvent);
+  }
 
   window.safeRender();
 };
@@ -158,11 +288,11 @@ window.refreshFromServer = async function () {
 window.startPolling = function () {
   clearInterval(window.pollTimer);
   window.pollTimer = setInterval(() => {
-    if (state.entered && !state.isRolling) {
+    if (state.entered) {
       window.runSafe(
         () => window.refreshFromServer(),
         'Could not refresh room.'
       );
     }
-  }, 1500);
+  }, 900);
 };
