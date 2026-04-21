@@ -14,12 +14,15 @@ window.enterRoom = async function () {
 
     state.entered = true;
     await window.startGameAudio?.();
-    window.playGameStartSound?.();
 
     state.connectionLabel = 'Live sync active';
     window.safeRender();
 
     window.startPolling();
+
+    await window.runSafe(async () => {
+      await window.refreshFromServer();
+    }, 'Could not refresh room.');
   }, 'Could not join room.');
 };
 
@@ -44,7 +47,10 @@ try {
     state.roomCode = state.joinCode;
   }
 
-  setInterval(window.tickTrivia, 1000);
+  setInterval(() => {
+    window.tickTrivia?.();
+  }, 1000);
+
   window.safeRender();
 } catch (error) {
   console.error(error);
