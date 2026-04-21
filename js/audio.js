@@ -2,42 +2,44 @@ window.audioEnabled = true;
 window.audioStarted = false;
 window.audioCtx = null;
 window.masterGain = null;
-window.ambientGain = null;
-window.noiseNode = null;
-window.noiseFilter = null;
-window.lfoOsc = null;
-window.lfoGain = null;
-window.ambientPulseTimer = null;
+window.musicTimer = null;
 
-window.ensureAudio = function(){
+window.ensureAudio = function () {
   if (window.audioCtx) return window.audioCtx;
 
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return null;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
 
-  window.audioCtx = new AudioContextClass();
+  window.audioCtx = new AC();
 
   window.masterGain = window.audioCtx.createGain();
-  window.masterGain.gain.value = 0.82;
+  window.masterGain.gain.value = 0.85;
   window.masterGain.connect(window.audioCtx.destination);
 
   return window.audioCtx;
 };
 
-window.resumeAudio = async function(){
+window.resumeAudio = async function () {
   const ctx = window.ensureAudio();
   if (!ctx) return;
 
-  if (ctx.state === 'suspended') {
+  if (ctx.state === "suspended") {
     try { await ctx.resume(); } catch {}
   }
 };
 
-window.playTone = async function(freq = 440, duration = 0.15, type = 'sine', volume = 0.22, when = 0){
+window.playTone = async function (
+  freq = 440,
+  duration = 0.25,
+  type = "sine",
+  volume = 0.16,
+  when = 0
+) {
   if (!window.audioEnabled) return;
 
   const ctx = window.ensureAudio();
   if (!ctx) return;
+
   await window.resumeAudio();
 
   const now = ctx.currentTime + when;
@@ -49,152 +51,104 @@ window.playTone = async function(freq = 440, duration = 0.15, type = 'sine', vol
   osc.frequency.setValueAtTime(freq, now);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.linearRampToValueAtTime(volume, now + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
   osc.connect(gain);
   gain.connect(window.masterGain);
 
   osc.start(now);
-  osc.stop(now + duration + 0.03);
+  osc.stop(now + duration + 0.05);
 };
 
-window.playClick = function(){
-  window.playTone(620, 0.05, 'square', 0.11);
+/* ---------- NEW LOFI MUSIC ---------- */
+
+window.stopAmbient = function () {
+  clearInterval(window.musicTimer);
+  window.musicTimer = null;
 };
 
-window.playDiceSound = async function(){
-  if (!window.audioEnabled) return;
-  for (let i = 0; i < 7; i++) {
-    await window.playTone(220 + i * 45, 0.05, 'triangle', 0.18, i * 0.04);
+window.playLofiBar = async function () {
+  const notes = [
+    261.63, // C
+    329.63, // E
+    392.00, // G
+    329.63, // E
+    293.66, // D
+    349.23, // F
+    440.00, // A
+    349.23  // F
+  ];
+
+  let t = 0;
+
+  for (let i = 0; i < notes.length; i++) {
+    window.playTone(notes[i], 0.55, "triangle", 0.07, t);
+    window.playTone(notes[i] / 2, 0.55, "sine", 0.035, t); // bass
+    t += 0.6;
   }
 };
 
-window.playGameStartSound = async function(){
+window.startAmbient = async function () {
   if (!window.audioEnabled) return;
-  await window.playTone(392, 0.14, 'triangle', 0.18, 0);
-  await window.playTone(523.25, 0.18, 'triangle', 0.19, 0.10);
-  await window.playTone(659.25, 0.24, 'triangle', 0.20, 0.22);
-};
+  if (window.musicTimer) return;
 
-window.playCorrectSound = async function(){
-  if (!window.audioEnabled) return;
-  await window.playTone(523.25, 0.10, 'triangle', 0.18, 0);
-  await window.playTone(659.25, 0.13, 'triangle', 0.19, 0.10);
-  await window.playTone(783.99, 0.18, 'triangle', 0.21, 0.22);
-};
-
-window.playWrongSound = async function(){
-  if (!window.audioEnabled) return;
-  await window.playTone(280, 0.10, 'sawtooth', 0.16, 0);
-  await window.playTone(220, 0.14, 'sawtooth', 0.17, 0.09);
-  await window.playTone(180, 0.18, 'sawtooth', 0.17, 0.20);
-};
-
-window.playMissTurnSound = async function(){
-  if (!window.audioEnabled) return;
-  await window.playTone(260, 0.08, 'square', 0.15, 0);
-  await window.playTone(210, 0.12, 'square', 0.16, 0.08);
-};
-
-window.playMoveSound = async function(){
-  if (!window.audioEnabled) return;
-  await window.playTone(420, 0.05, 'triangle', 0.10, 0);
-};
-
-window.stopAmbient = function(){
-  clearInterval(window.ambientPulseTimer);
-  window.ambientPulseTimer = null;
-
-  try { window.noiseNode?.stop(); } catch {}
-  try { window.lfoOsc?.stop(); } catch {}
-
-  window.noiseNode = null;
-  window.noiseFilter = null;
-  window.lfoOsc = null;
-  window.lfoGain = null;
-  window.ambientGain = null;
-};
-
-window.startAmbient = async function(){
-  if (!window.audioEnabled) return;
-  if (window.ambientGain) return;
-
-  const ctx = window.ensureAudio();
-  if (!ctx) return;
   await window.resumeAudio();
 
-  const bufferSize = 2 * ctx.sampleRate;
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
+  window.playLofiBar();
 
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * 0.24;
-  }
-
-  const noise = ctx.createBufferSource();
-  noise.buffer = buffer;
-  noise.loop = true;
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 520;
-  filter.Q.value = 0.6;
-
-  const gain = ctx.createGain();
-  gain.gain.value = 0.14;
-
-  const lfo = ctx.createOscillator();
-  lfo.type = 'sine';
-  lfo.frequency.value = 0.08;
-
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 0.03;
-
-  lfo.connect(lfoGain);
-  lfoGain.connect(gain.gain);
-
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(window.masterGain);
-
-  noise.start();
-  lfo.start();
-
-  window.noiseNode = noise;
-  window.noiseFilter = filter;
-  window.ambientGain = gain;
-  window.lfoOsc = lfo;
-  window.lfoGain = lfoGain;
-
-  window.ambientPulseTimer = setInterval(() => {
-    const t = ctx.currentTime;
-    const pulse = ctx.createOscillator();
-    const pulseGain = ctx.createGain();
-
-    pulse.type = 'triangle';
-    pulse.frequency.setValueAtTime(140 + Math.random() * 30, t);
-
-    pulseGain.gain.setValueAtTime(0.0001, t);
-    pulseGain.gain.linearRampToValueAtTime(0.09, t + 0.04);
-    pulseGain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
-
-    pulse.connect(pulseGain);
-    pulseGain.connect(window.masterGain);
-
-    pulse.start(t);
-    pulse.stop(t + 1.25);
-  }, 2200);
+  window.musicTimer = setInterval(() => {
+    window.playLofiBar();
+  }, 4800);
 };
 
-window.startGameAudio = async function(){
+/* ---------- GAME SOUNDS ---------- */
+
+window.playClick = function () {
+  window.playTone(650, 0.06, "square", 0.14);
+};
+
+window.playDiceSound = async function () {
+  for (let i = 0; i < 7; i++) {
+    window.playTone(240 + i * 50, 0.06, "triangle", 0.16, i * 0.05);
+  }
+};
+
+window.playMoveSound = async function () {
+  window.playTone(420, 0.08, "triangle", 0.10);
+};
+
+window.playCorrectSound = async function () {
+  window.playTone(523, 0.10, "triangle", 0.18, 0);
+  window.playTone(659, 0.12, "triangle", 0.18, 0.10);
+  window.playTone(783, 0.16, "triangle", 0.18, 0.22);
+};
+
+window.playWrongSound = async function () {
+  window.playTone(280, 0.12, "sawtooth", 0.18, 0);
+  window.playTone(220, 0.14, "sawtooth", 0.18, 0.10);
+};
+
+window.playMissTurnSound = async function () {
+  window.playTone(260, 0.10, "square", 0.18, 0);
+  window.playTone(210, 0.14, "square", 0.18, 0.10);
+};
+
+window.playGameStartSound = async function () {
+  window.playTone(392, 0.12, "triangle", 0.18, 0);
+  window.playTone(523, 0.14, "triangle", 0.18, 0.10);
+  window.playTone(659, 0.20, "triangle", 0.18, 0.22);
+};
+
+window.startGameAudio = async function () {
   if (window.audioStarted) return;
+
   window.audioStarted = true;
   await window.resumeAudio();
   await window.startAmbient();
 };
 
-window.toggleAudio = async function(){
+window.toggleAudio = async function () {
   window.audioEnabled = !window.audioEnabled;
 
   if (!window.audioEnabled) {
