@@ -3,20 +3,27 @@ window.createTrailAt = function(space){
   if (!shell || !space) return;
 
   const dot = document.createElement('div');
-  dot.className = 'trail-dot';
   dot.style.left = `${space.x}%`;
   dot.style.top = `${space.y}%`;
   dot.style.position = 'absolute';
-  dot.style.width = '14px';
-  dot.style.height = '14px';
+  dot.style.width = '18px';
+  dot.style.height = '18px';
   dot.style.borderRadius = '999px';
-  dot.style.transform = 'translate(-50%, -50%)';
-  dot.style.background = 'rgba(255,255,255,.92)';
-  dot.style.boxShadow = '0 0 18px rgba(255,255,255,.85)';
-  dot.style.zIndex = '9';
+  dot.style.transform = 'translate(-50%,-50%)';
+  dot.style.background = 'rgba(255,255,255,.95)';
+  dot.style.boxShadow = '0 0 20px rgba(255,255,255,.9)';
+  dot.style.zIndex = '30';
   shell.appendChild(dot);
 
-  setTimeout(() => dot.remove(), 500);
+  dot.animate(
+    [
+      { opacity:1, transform:'translate(-50%,-50%) scale(1)' },
+      { opacity:0, transform:'translate(-50%,-50%) scale(2)' }
+    ],
+    { duration:450, easing:'ease-out' }
+  );
+
+  setTimeout(()=>dot.remove(),460);
 };
 
 window.showDiceRoll = async function(roll){
@@ -29,16 +36,17 @@ window.showDiceRoll = async function(roll){
   overlay.classList.remove('hidden');
   label.textContent = 'Rolling...';
 
-  const faces = ['🎲','⚀','⚁','⚂','⚃','⚄','⚅'];
+  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 
-  for (let i = 0; i < 8; i++) {
-    box.textContent = faces[(i % 6) + 1];
-    await new Promise(resolve => setTimeout(resolve, 85));
+  for(let i=0;i<10;i++){
+    box.textContent = faces[i % 6];
+    await new Promise(r=>setTimeout(r,80));
   }
 
-  box.textContent = String(roll);
+  box.textContent = roll;
   label.textContent = 'Move!';
-  await new Promise(resolve => setTimeout(resolve, 420));
+  await new Promise(r=>setTimeout(r,450));
+
   overlay.classList.add('hidden');
 };
 
@@ -49,139 +57,110 @@ window.pulseLanding = function(spaceId){
 
     el.animate(
       [
-        { transform: 'translate(-50%, -50%) scale(1)' },
-        { transform: 'translate(-50%, -50%) scale(1.08)' },
-        { transform: 'translate(-50%, -50%) scale(1)' }
+        { transform:'translate(-50%,-50%) scale(1)' },
+        { transform:'translate(-50%,-50%) scale(1.12)' },
+        { transform:'translate(-50%,-50%) scale(1)' }
       ],
-      { duration: 240, easing: 'ease-out' }
+      { duration:320, easing:'ease-out' }
     );
   });
 };
 
+window.getTileColors = function(type){
+  switch(type){
+    case 'start': return 'linear-gradient(145deg,#31d67a,#1fa85e)';
+    case 'finish': return 'linear-gradient(145deg,#cf63ff,#8d53ff)';
+    case 'safe': return 'linear-gradient(145deg,#2ed7d0,#1ca89c)';
+    case 'health': return 'linear-gradient(145deg,#4ca8ff,#2b74ff)';
+    case 'risk': return 'linear-gradient(145deg,#ff739f,#e94b75)';
+    case 'quarantine': return 'linear-gradient(145deg,#ffca57,#f09427)';
+    case 'chance': return 'linear-gradient(145deg,#8f7bff,#5f58ef)';
+    default: return 'linear-gradient(145deg,#35506d,#24364a)';
+  }
+};
+
 window.getTileIcon = function(name){
   const map = {
-    'Brain':'🧠','Brain Stem':'🧠','Eyes':'👁️','Teeth':'🦷','Nasal Cavity':'👃',
-    'Temporal Bone':'💀','Frontal Bone':'💀','Cranium':'💀','Heart':'🫀','Aorta':'🫀',
-    'Lungs':'🫁','Bronchi':'🫁','Trachea':'🫁','Ribs':'🦴','Sternum':'🦴','Clavicle':'🦴',
-    'Scapula':'🦴','Humerus':'🦴','Radius':'🦴','Ulna':'🦴','Thumb':'✋','Esophagus':'🥼',
-    'Diaphragm':'🫁','Stomach':'🍽️','Liver':'🟤','Pancreas':'🧬','Gallbladder':'🟢',
-    'Spleen':'🩸','Colon':'🧫','Small Intestine':'🧫','Appendix':'🧫','Rectum':'🧫',
-    'Bladder':'💧','Uterus':'♀️','Pelvis':'🦴','Hip Joint':'🦴','Femur':'🦴',
-    'Hamstrings':'🦵','Quadriceps':'🦵','Patella':'🦴','Fibula':'🦴','Tibia':'🦴',
-    'Achilles Tendon':'🦶','Calcaneus':'🦶','Talus':'🦶','Metatarsals':'🦶','Toes':'🦶',
-    'Heel':'🦶','Start':'⭐'
+    Brain:'🧠', Heart:'🫀', Lungs:'🫁', Liver:'🟤',
+    Stomach:'🍽️', Kidney:'💧', Eyes:'👁️',
+    Femur:'🦴', Pelvis:'🦴', Teeth:'🦷'
   };
   return map[name] || '🔬';
 };
 
-window.getCornerBadge = function(type){
-  if (type === 'safe') return '🛡️';
-  if (type === 'quarantine') return '🚫';
-  if (type === 'health') return '➕';
-  if (type === 'risk') return '⚠️';
-  if (type === 'chance') return '❓';
-  if (type === 'finish') return '🏁';
-  if (type === 'start') return '▶️';
-  return '';
-};
-
 window.getBoardSpaces = function(){
   const labels = [
-    ['Start','Feet'],['Heel','Feet'],['Toes','Feet'],['Metatarsals','Feet'],['Talus','Feet'],['Calcaneus','Feet'],
-    ['Achilles Tendon','Lower Leg'],['Tibia','Lower Leg'],['Fibula','Lower Leg'],['Patella','Knee'],['Quadriceps','Upper Leg'],
-    ['Hamstrings','Upper Leg'],['Femur','Upper Leg'],['Hip Joint','Hip'],['Pelvis','Pelvis'],['Bladder','Pelvis'],
-    ['Uterus','Pelvis'],['Rectum','Digestive'],['Appendix','Digestive'],['Colon','Digestive'],['Small Intestine','Digestive'],
-    ['Gallbladder','Digestive'],['Liver','Digestive'],['Pancreas','Digestive'],['Spleen','Immune'],['Stomach','Digestive'],
-    ['Esophagus','Upper Body'],['Diaphragm','Thorax'],['Aorta','Thorax'],['Ribs','Thorax'],['Sternum','Thorax'],
-    ['Lungs','Thorax'],['Bronchi','Thorax'],['Trachea','Neck'],['Heart','Thorax'],['Clavicle','Shoulder'],
-    ['Scapula','Shoulder'],['Humerus','Arm'],['Radius','Forearm'],['Ulna','Forearm'],['Thumb','Hand'],['Eyes','Head'],
-    ['Teeth','Head'],['Nasal Cavity','Head'],['Temporal Bone','Head'],['Frontal Bone','Head'],['Cranium','Head'],
-    ['Brain Stem','Head'],['Brain','Finish']
+    'Start','Heel','Toes','Talus','Calcaneus','Tibia','Fibula','Patella',
+    'Quadriceps','Hamstrings','Femur','Pelvis','Bladder','Colon','Liver',
+    'Pancreas','Stomach','Diaphragm','Heart','Lungs','Bronchi','Trachea',
+    'Clavicle','Scapula','Humerus','Radius','Ulna','Thumb','Eyes','Teeth',
+    'Frontal','Cranium','Brain Stem','Brain'
   ];
 
-  const gridSize = 7;
+  const size = 6;
   const cells = [];
-  let left = 0, right = gridSize - 1, top = 0, bottom = gridSize - 1;
+  let left=0,right=size-1,top=0,bottom=size-1;
 
-  while (left <= right && top <= bottom) {
-    for (let c = left; c <= right; c++) cells.push([bottom, c]);
-    for (let r = bottom - 1; r >= top; r--) cells.push([r, right]);
-    if (top < bottom) for (let c = right - 1; c >= left; c--) cells.push([top, c]);
-    if (left < right) for (let r = top + 1; r <= bottom - 1; r++) cells.push([r, left]);
+  while(left<=right && top<=bottom){
+    for(let c=left;c<=right;c++) cells.push([bottom,c]);
+    for(let r=bottom-1;r>=top;r--) cells.push([r,right]);
+    if(top<bottom) for(let c=right-1;c>=left;c--) cells.push([top,c]);
+    if(left<right) for(let r=top+1;r<=bottom-1;r++) cells.push([r,left]);
     left++; right--; top++; bottom--;
   }
 
-  const minX = 14;
-  const maxX = 86;
-  const minY = 12;
-  const maxY = 88;
-  const stepX = (maxX - minX) / (gridSize - 1);
-  const stepY = (maxY - minY) / (gridSize - 1);
+  const minX=16,maxX=84,minY=12,maxY=88;
+  const stepX=(maxX-minX)/(size-1);
+  const stepY=(maxY-minY)/(size-1);
 
-  const typeForIndex = (i, last) => {
-    if (i === 0) return 'start';
-    if (i === last) return 'finish';
-    if (i % 11 === 0) return 'quarantine';
-    if (i % 9 === 0) return 'risk';
-    if (i % 7 === 0) return 'health';
-    if (i % 5 === 0) return 'chance';
-    if (i % 4 === 0) return 'safe';
-    return 'normal';
-  };
-
-  return cells.slice(0, labels.length).map(([row, col], i) => ({
-    id: i,
-    name: labels[i][0],
-    body: labels[i][1],
-    x: minX + col * stepX,
-    y: minY + row * stepY,
-    type: typeForIndex(i, labels.length - 1)
+  return cells.slice(0, labels.length).map(([r,c],i)=>({
+    id:i,
+    name:labels[i],
+    x:minX + c*stepX,
+    y:minY + r*stepY,
+    type:
+      i===0 ? 'start' :
+      i===labels.length-1 ? 'finish' :
+      i%9===0 ? 'quarantine' :
+      i%7===0 ? 'risk' :
+      i%5===0 ? 'chance' :
+      i%4===0 ? 'safe' :
+      i%3===0 ? 'health' :
+      'normal'
   }));
-};
-
-window.getTileColors = function(type){
-  switch (type) {
-    case 'start': return 'linear-gradient(145deg,#2ed67d,#14a864)';
-    case 'finish': return 'linear-gradient(145deg,#d86aff,#8f5cff)';
-    case 'safe': return 'linear-gradient(145deg,#37d5cf,#1da39a)';
-    case 'health': return 'linear-gradient(145deg,#59b4ff,#2f7cff)';
-    case 'risk': return 'linear-gradient(145deg,#ff759f,#e24c73)';
-    case 'quarantine': return 'linear-gradient(145deg,#ffbf56,#f08a21)';
-    case 'chance': return 'linear-gradient(145deg,#9277ff,#6a51ef)';
-    default: return 'linear-gradient(145deg,#324867,#24364d)';
-  }
 };
 
 window.boardMarkup = function(){
   const spaces = window.getBoardSpaces();
+  const players = Array.isArray(state.players) ? state.players : [];
   const cp = typeof window.currentPlayer === 'function' ? window.currentPlayer() : null;
-  const focusId = cp ? cp.position : null;
-  const safePlayers = Array.isArray(state.players) ? state.players : [];
-  const imageUrl = window.APP_CONFIG?.ANATOMY_IMAGE_URL || './body anatomy mib.png';
+  const currentId = cp ? cp.position : null;
+  const img = window.APP_CONFIG?.ANATOMY_IMAGE_URL || './body anatomy mib.png';
 
-  const spacesMarkup = spaces.map(space => {
-    const onSpace = safePlayers.filter(player => player.position === space.id);
-    const currentClass = focusId === space.id ? ' current-turn' : '';
-    const bg = window.getTileColors(space.type);
-    const icon = window.getTileIcon(space.name);
-    const badge = window.getCornerBadge(space.type);
+  const spacesHtml = spaces.map(space => {
+    const onTile = players.filter(p => p.position === space.id);
+    const current = currentId === space.id;
 
     return `
       <div
-        class="space ${space.type || 'normal'}${currentClass}"
         data-space-id="${space.id}"
+        class="space"
         style="
+          position:absolute;
           left:${space.x}%;
           top:${space.y}%;
-          width:88px;
-          height:88px;
+          width:90px;
+          height:90px;
+          transform:translate(-50%,-50%);
+          border-radius:24px;
+          background:${window.getTileColors(space.type)};
+          border:${current ? '3px solid #fff7a6' : '2px solid rgba(255,255,255,.14)'};
+          box-shadow:
+            ${current
+              ? '0 0 28px rgba(255,241,120,.9), 0 14px 28px rgba(0,0,0,.25)'
+              : '0 10px 20px rgba(0,0,0,.22)'};
           padding:7px;
-          border-radius:22px;
-          background:${bg};
-          border:2px solid rgba(255,255,255,.18);
-          box-shadow:0 10px 22px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.10);
-          position:absolute;
-          overflow:hidden;
+          z-index:${current ? 12 : 8};
         "
       >
         <div style="
@@ -190,88 +169,85 @@ window.boardMarkup = function(){
           left:8%;
           width:84%;
           height:18px;
-          background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0));
-          border-radius:0 0 16px 16px;
-          pointer-events:none;
+          border-radius:0 0 14px 14px;
+          background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,0));
         "></div>
 
-        <div style="
-          position:absolute;
-          top:6px;
-          right:6px;
-          font-size:12px;
-          line-height:1;
-          opacity:.95;
-        ">${badge}</div>
-
-        <div class="space-id">#${space.id}</div>
-        <div style="font-size:18px;line-height:1;margin-bottom:2px;">${icon}</div>
-        <div class="space-name" style="font-size:10px;line-height:1.04;">
+        <div style="font-size:12px;font-weight:900;opacity:.7;">#${space.id}</div>
+        <div style="font-size:18px;">${window.getTileIcon(space.name)}</div>
+        <div style="font-size:10px;font-weight:900;line-height:1.05;">
           ${window.escapeHtml(space.name)}
         </div>
-        <div class="space-body" style="font-size:8px;opacity:.84;">
-          ${window.escapeHtml(space.body)}
-        </div>
-        <div class="space-tokens">
-          ${onSpace.map(player => {
-            const token = typeof window.getPlayerToken === 'function'
-              ? window.getPlayerToken((player.id || 1) - 1)
-              : '🙂';
 
-            const playerName = typeof window.getPlayerName === 'function'
-              ? window.getPlayerName(player)
-              : (player?.name || 'Player');
-
-            return `
-              <span class="token-with-name">
-                <span class="token-pill">${token}</span>
-                <span class="token-name">${window.escapeHtml(playerName)}</span>
-              </span>
-            `;
-          }).join('')}
+        <div style="
+          margin-top:4px;
+          display:flex;
+          flex-wrap:wrap;
+          gap:4px;
+        ">
+          ${onTile.map((p,i)=>`
+            <div style="
+              min-width:24px;
+              height:24px;
+              padding:0 6px;
+              border-radius:999px;
+              background:#ffffff;
+              color:#13283a;
+              font-size:14px;
+              font-weight:900;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              box-shadow:0 4px 8px rgba(0,0,0,.2);
+            ">
+              ${window.getPlayerToken(i)}
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
   }).join('');
 
   return `
-    <div
-      class="board-stage"
+    <div class="board-stage"
       style="
+        position:relative;
+        width:100%;
+        height:100%;
+        border-radius:34px;
+        overflow:hidden;
         background:
-          radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 28%),
-          linear-gradient(180deg,#a9cbc2 0%, #90b5ac 100%);
+          radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 30%),
+          linear-gradient(180deg,#9fc5ba 0%, #85aa9f 100%);
       "
     >
-      <div
-        style="
-          position:absolute;
-          left:50%;
-          top:50%;
-          width:18%;
-          height:66%;
-          transform:translate(-50%,-50%);
-          z-index:0;
-          pointer-events:none;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-        "
-      >
+
+      <div style="
+        position:absolute;
+        left:50%;
+        top:50%;
+        width:24%;
+        height:64%;
+        transform:translate(-50%,-50%);
+        z-index:1;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        opacity:.92;
+      ">
         <img
-          src="${imageUrl}"
-          alt="anatomy board"
-          onerror="this.style.display='none'"
+          src="${img}"
           style="
             width:100%;
             height:100%;
             object-fit:contain;
-            filter:drop-shadow(0 16px 26px rgba(0,0,0,.18));
+            filter:drop-shadow(0 18px 30px rgba(0,0,0,.22));
           "
         />
       </div>
 
-      ${spacesMarkup}
+      ${spacesHtml}
+
     </div>
   `;
 };
