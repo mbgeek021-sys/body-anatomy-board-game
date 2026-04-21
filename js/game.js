@@ -21,8 +21,9 @@ window.myPlayer = function(){
 
 window.ensurePlayersShape = function(players){
   const safePlayers = Array.isArray(players) ? players : [];
-  if (typeof window.normalizePlayers === 'function') {
-    try { return window.normalizePlayers(safePlayers); } catch {}
+
+  if (typeof window.normalizeServerPlayers === 'function') {
+    try { return window.normalizeServerPlayers(safePlayers); } catch {}
   }
 
   return safePlayers.map((p, i) => ({
@@ -56,6 +57,19 @@ window.shouldTriggerTrivia = function(space){
   return ['chance','health','risk','safe'].includes(space.type);
 };
 
+window.pushSharedEvent = function(message, sound = null){
+  if (typeof window.addRoomEvent === 'function') {
+    window.addRoomEvent(message, sound);
+  } else {
+    state.lastCard = { text: message };
+  }
+};
+
+window.findSpaceByPosition = function(position){
+  const spaces = typeof window.getBoardSpaces === 'function' ? window.getBoardSpaces() : [];
+  return spaces[Math.max(0, Math.min(position || 0, spaces.length - 1))] || null;
+};
+
 window.applySpaceEffect = function(player, landedSpace){
   let text = `${window.getPlayerName(player)} landed on ${landedSpace.name}.`;
 
@@ -72,7 +86,7 @@ window.applySpaceEffect = function(player, landedSpace){
       break;
 
     case 'risk':
-      player.position = Math.max(0, player.position - 1);
+      player.position = Math.max(0, (player.position || 0) - 1);
       text = `${window.getPlayerName(player)} hit a risk tile and moved back 1 space.`;
       break;
 
@@ -83,10 +97,10 @@ window.applySpaceEffect = function(player, landedSpace){
 
     case 'chance':
       if (Math.random() < 0.5) {
-        player.position = Math.min(window.getBoardSpaces().length - 1, player.position + 2);
+        player.position = Math.min(window.getBoardSpaces().length - 1, (player.position || 0) + 2);
         text = `${window.getPlayerName(player)} got lucky and jumped ahead 2 spaces.`;
       } else {
-        player.position = Math.max(0, player.position - 2);
+        player.position = Math.max(0, (player.position || 0) - 2);
         text = `${window.getPlayerName(player)} got unlucky and moved back 2 spaces.`;
       }
       break;
@@ -103,11 +117,48 @@ window.applySpaceEffect = function(player, landedSpace){
   }
 
   state.lastCard = { text };
+  return text;
+};
+
+window.skipMissedTurnsIfNeeded = async function(){
+  if (!Array.isArray(state.players) || !state.players.length) return false;
+
+  let guard = 0;
+  let skippedAny = false;
+
+  while (guard < state.players.length) {
+    const player = window.currentPlayer();
+    if (!player) break;
+
+    if ((player.skipped || 0) <= 0) break;
+
+    player.skipped = Math.max(0, (player.skipped || 0) - 1);
+    const msg = `${window.getPlayerName(player)} missed this turn.`;
+    state.lastCard = { text: msg };
+    window.pushSharedEvent(msg, 'skip');
+
+    skippedAny = true;
+    window.advanceTurn();
+    guard++;
+  }
+
+  if (skippedAny) {
+    state.players = window.ensurePlayersShape(state.players);
+    await window.runSafe(async () => {
+      if (typeof window.saveRoomState === 'function') {
+        await window.saveRoomState();
+      }
+    }, 'Could not save skipped turns.');
+    window.safeRender();
+  }
+
+  return skippedAny;
 };
 
 window.handleRoll = async function(){
   if (state.isRolling) return;
   if (state.winner) return;
+  if (state.trivia) return;
 
   const spaces = typeof window.getBoardSpaces === 'function' ? window.getBoardSpaces() : [];
   if (!spaces.length) {
@@ -116,12 +167,15 @@ window.handleRoll = async function(){
     return;
   }
 
-  const players = window.ensurePlayersShape(state.players);
-  if (!players.length) {
+  state.players = window.ensurePlayersShape(state.players);
+
+  if (!state.players.length) {
     state.lastCard = { text: 'No players loaded.' };
     window.safeRender();
     return;
   }
+
+  await window.skipMissedTurnsIfNeeded();
 
   const current = window.currentPlayer();
   const mine = window.myPlayer();
@@ -133,24 +187,7 @@ window.handleRoll = async function(){
   }
 
   if (current.ownerId !== mine.ownerId) {
-    state.lastCard = { text: 'Wait for your turn.' };
-    window.safeRender();
-    return;
-  }
-
-  if ((current.skipped || 0) > 0) {
-    current.skipped -= 1;
-    state.lastCard = { text: `${window.getPlayerName(current)} missed this turn.` };
-    window.playMissTurnSound?.();
-    state.players = window.ensurePlayersShape(players);
-    window.advanceTurn();
-
-    await window.runSafe(async () => {
-      if (typeof window.saveRoomState === 'function') {
-        await window.saveRoomState();
-      }
-    }, 'Could not save skipped turn.');
-
+    state.lastCard = { text: `Waiting for ${window.getPlayerName(current)}...` };
     window.safeRender();
     return;
   }
@@ -163,18 +200,18 @@ window.handleRoll = async function(){
   try {
     const roll = window.rollDie();
     state.lastRoll = roll;
-    window.playDiceSound?.();
+    window.pushSharedEvent(`${window.getPlayerName(current)} rolled ${roll}.`, 'dice');
 
     if (typeof window.showDiceRoll === 'function') {
       await window.showDiceRoll(roll);
     }
 
-    const currentIndex = Math.max(0, Math.min(state.currentPlayerIndex || 0, players.length - 1));
-    const player = players[currentIndex];
+    const currentIndex = Math.max(0, Math.min(state.currentPlayerIndex || 0, state.players.length - 1));
+    const player = state.players[currentIndex];
 
     for (let step = 0; step < roll; step++) {
       player.position = Math.min(spaces.length - 1, (player.position || 0) + 1);
-      state.players = window.ensurePlayersShape(players);
+      state.players = window.ensurePlayersShape(state.players);
 
       if (typeof window.createTrailAt === 'function') {
         window.createTrailAt(spaces[player.position]);
@@ -183,23 +220,26 @@ window.handleRoll = async function(){
         window.pulseLanding(player.position);
       }
 
-      window.safeRender();
       window.playMoveSound?.();
+      window.safeRender();
       await window.delay(180);
     }
 
     const landedSpace = spaces[player.position];
-    window.applySpaceEffect(player, landedSpace);
+    const effectText = window.applySpaceEffect(player, landedSpace);
+    window.pushSharedEvent(effectText, landedSpace.type === 'quarantine' ? 'skip' : 'move');
 
     if (!state.winner && window.shouldTriggerTrivia(landedSpace) && Array.isArray(window.TRIVIA_QUESTIONS) && window.TRIVIA_QUESTIONS.length) {
       state.trivia = window.TRIVIA_QUESTIONS[Math.floor(Math.random() * window.TRIVIA_QUESTIONS.length)];
       state.timer = 20;
       state.lastCard = { text: `${window.getPlayerName(player)} triggered trivia.` };
+      window.pushSharedEvent(`${window.getPlayerName(player)} triggered trivia.`, 'move');
     } else if (!state.winner) {
       window.advanceTurn();
+      await window.skipMissedTurnsIfNeeded();
     }
 
-    state.players = window.ensurePlayersShape(players);
+    state.players = window.ensurePlayersShape(state.players);
 
     await window.runSafe(async () => {
       if (typeof window.saveRoomState === 'function') {
@@ -212,6 +252,13 @@ window.handleRoll = async function(){
     state.lastCard = { text: error?.message || 'Roll failed.' };
   } finally {
     state.isRolling = false;
+
+    await window.runSafe(async () => {
+      if (typeof window.saveRoomState === 'function') {
+        await window.saveRoomState();
+      }
+    }, 'Could not save roll final state.');
+
     window.safeRender();
   }
 };
@@ -219,9 +266,17 @@ window.handleRoll = async function(){
 window.submitTrivia = async function(choice){
   if (!state.trivia) return;
 
-  const players = window.ensurePlayersShape(state.players);
-  const current = players[Math.max(0, Math.min(state.currentPlayerIndex || 0, players.length - 1))];
-  if (!current) return;
+  state.players = window.ensurePlayersShape(state.players);
+
+  const current = window.currentPlayer();
+  const mine = window.myPlayer();
+
+  if (!current || !mine) return;
+  if (current.ownerId !== mine.ownerId) {
+    state.lastCard = { text: `Waiting for ${window.getPlayerName(current)} to answer...` };
+    window.safeRender();
+    return;
+  }
 
   const correct = choice === state.trivia.answer;
 
@@ -229,21 +284,24 @@ window.submitTrivia = async function(choice){
     current.score = (current.score || 0) + 2;
     state.feedback = { ok: true, text: 'Correct! +2 points.' };
     state.lastCard = { text: `${window.getPlayerName(current)} answered correctly and gained 2 points.` };
+    window.pushSharedEvent(`${window.getPlayerName(current)} answered correctly.`, 'correct');
     window.playCorrectSound?.();
   } else {
     current.position = Math.max(0, (current.position || 0) - 2);
     current.score = Math.max(0, (current.score || 0) - 1);
     state.feedback = { ok: false, text: 'Wrong! -1 point and move back 2.' };
     state.lastCard = { text: `${window.getPlayerName(current)} missed the question and moved back 2 spaces.` };
+    window.pushSharedEvent(`${window.getPlayerName(current)} answered incorrectly.`, 'wrong');
     window.playWrongSound?.();
   }
 
-  state.players = window.ensurePlayersShape(players);
+  state.players = window.ensurePlayersShape(state.players);
   state.trivia = null;
   state.timer = 30;
 
   if (!state.winner) {
     window.advanceTurn();
+    await window.skipMissedTurnsIfNeeded();
   }
 
   await window.runSafe(async () => {
@@ -276,6 +334,8 @@ window.resetGame = async function(){
   state.isRolling = false;
   state.trivia = null;
   state.timer = 30;
+  state.eventLog = [];
+  state.activeEvent = null;
 
   await window.runSafe(async () => {
     if (typeof window.saveRoomState === 'function') {
