@@ -75,8 +75,84 @@ window.getSafePlayerToken = function(index){
   if (typeof window.getPlayerToken === 'function') {
     try { return window.getPlayerToken(index); } catch {}
   }
-  const tokens = ['🩺','💉','💊','🩹','🌡️','🫀'];
+  const tokens = ['🩺','💉','💊','🩹','🌡️','🫀','🧠','❤️'];
   return tokens[index % tokens.length];
+};
+
+window.renderEventFeed = function(){
+  const events = Array.isArray(state.eventLog) ? state.eventLog.slice(-6).reverse() : [];
+
+  return `
+    <div class="hud-card">
+      <div class="hud-title">Live Feed</div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-height:240px;overflow:auto;">
+        ${events.length ? events.map(event => `
+          <div style="
+            border-radius:16px;
+            padding:10px 12px;
+            background:rgba(255,255,255,.05);
+            border:1px solid rgba(255,255,255,.06);
+            font-size:13px;
+            line-height:1.35;
+            color:#e6f2f6;
+          ">
+            ${window.escapeHtml(event.message || '')}
+          </div>
+        `).join('') : `
+          <div class="action-box">Game activity will appear here.</div>
+        `}
+      </div>
+    </div>
+  `;
+};
+
+window.renderTriviaModal = function(){
+  if (!state.trivia) return '';
+
+  const q = state.trivia;
+  const choices = Array.isArray(q.choices) ? q.choices : [];
+  const current = window.getSafeCurrentPlayer();
+  const mine = window.getSafeMyPlayer();
+  const isAnsweringPlayer = !!(current && mine && current.ownerId === mine.ownerId);
+
+  return `
+    <div class="trivia-modal">
+      <div class="trivia-card">
+        <div class="trivia-top">
+          <div class="hud-title" style="margin:0">🧠 Trivia Challenge</div>
+          <div class="pill-time">${state.timer ?? 20}s</div>
+        </div>
+
+        <div style="
+          margin-bottom:10px;
+          font-size:13px;
+          color:#b9d6df;
+          font-weight:800;
+        ">
+          ${isAnsweringPlayer
+            ? 'Your question — answer before time runs out.'
+            : `Watching ${window.escapeHtml(window.getSafePlayerName(current))} answer...`}
+        </div>
+
+        <div class="trivia-q">
+          ${window.escapeHtml(q.q || '')}
+        </div>
+
+        <div class="trivia-grid">
+          ${choices.map(choice => `
+            <button
+              class="btn trivia-choice click-btn"
+              style="background:linear-gradient(135deg,#4f7cff,#7858ff);"
+              onclick="window.submitTrivia(${JSON.stringify(choice).replace(/"/g, '&quot;')})"
+              ${isAnsweringPlayer ? '' : 'disabled'}
+            >
+              ${window.escapeHtml(choice)}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
 };
 
 window.lobbyScreen = function(){
@@ -152,40 +228,6 @@ window.lobbyScreen = function(){
   `;
 };
 
-window.renderTriviaModal = function(){
-  if (!state.trivia) return '';
-
-  const q = state.trivia;
-  const choices = Array.isArray(q.choices) ? q.choices : [];
-
-  return `
-    <div class="trivia-modal">
-      <div class="trivia-card">
-        <div class="trivia-top">
-          <div class="hud-title" style="margin:0">🧠 Trivia Challenge</div>
-          <div class="pill-time">${state.timer ?? 20}s</div>
-        </div>
-
-        <div class="trivia-q">
-          ${window.escapeHtml(q.q || '')}
-        </div>
-
-        <div class="trivia-grid">
-          ${choices.map(choice => `
-            <button
-              class="btn trivia-choice click-btn"
-              style="background:linear-gradient(135deg,#4f7cff,#7858ff);"
-              onclick="window.submitTrivia(${JSON.stringify(choice).replace(/"/g, '&quot;')})"
-            >
-              ${window.escapeHtml(choice)}
-            </button>
-          `).join('')}
-        </div>
-      </div>
-    </div>
-  `;
-};
-
 window.gameScreen = function(){
   const cp = window.getSafeCurrentPlayer();
   const mine = window.getSafeMyPlayer();
@@ -241,7 +283,7 @@ window.gameScreen = function(){
           <div class="hud-title">Current Turn</div>
           <div class="turn-hero">
             <div style="font-size:13px;opacity:.8">
-              ${myTurn ? 'Your turn' : 'Wait for your turn'}
+              ${myTurn ? 'Your turn' : `Watching ${window.escapeHtml(window.getSafePlayerName(cp))}`}
             </div>
             <h3>
               ${state.winner
@@ -291,13 +333,17 @@ window.gameScreen = function(){
                   </div>
                 </div>
 
-                <div style="font-size:12px;color:#c9d6d8">
-                  Position: ${player.position ?? 0}
+                <div style="font-size:12px;color:#c9d6d8;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                  <span>Position: ${player.position ?? 0}</span>
+                  <span>Score: ${player.score ?? 0}</span>
+                  ${(player.skipped || 0) > 0 ? `<span style="color:#ffd18a;">Skipping next turn</span>` : ''}
                 </div>
               </div>
             `).join('')}
           </div>
         </div>
+
+        ${window.renderEventFeed()}
       </div>
     </div>
 
@@ -324,21 +370,33 @@ window.attachEvents = function(){
   }
 };
 
-window.tickTrivia = function(){
+window.tickTrivia = async function(){
   if (!state.trivia) return;
+
+  const current = window.getSafeCurrentPlayer();
+  const mine = window.getSafeMyPlayer();
+  const amAnsweringPlayer = !!(current && mine && current.ownerId === mine.ownerId);
+
+  if (!amAnsweringPlayer) {
+    return;
+  }
 
   state.timer--;
 
   if (state.timer <= 0) {
     const players = Array.isArray(state.players) ? state.players : [];
-    const current = players[Math.max(0, Math.min(state.currentPlayerIndex || 0, players.length - 1))];
+    const active = players[Math.max(0, Math.min(state.currentPlayerIndex || 0, players.length - 1))];
 
-    if (current) {
-      current.position = Math.max(0, (current.position || 0) - 2);
-      current.score = Math.max(0, (current.score || 0) - 1);
+    if (active) {
+      active.position = Math.max(0, (active.position || 0) - 2);
+      active.score = Math.max(0, (active.score || 0) - 1);
       state.feedback = { ok:false, text:'Time is up! -1 point and move back 2.' };
-      state.lastCard = { text:`${window.getSafePlayerName(current)} ran out of time and moved back 2 spaces.` };
+      state.lastCard = { text:`${window.getSafePlayerName(active)} ran out of time and moved back 2 spaces.` };
       window.playWrongSound?.();
+
+      if (typeof window.pushSharedEvent === 'function') {
+        window.pushSharedEvent(`${window.getSafePlayerName(active)} ran out of time.`, 'wrong');
+      }
     }
 
     state.trivia = null;
@@ -346,6 +404,10 @@ window.tickTrivia = function(){
 
     if (!state.winner && typeof window.advanceTurn === 'function') {
       window.advanceTurn();
+    }
+
+    if (typeof window.skipMissedTurnsIfNeeded === 'function') {
+      await window.skipMissedTurnsIfNeeded();
     }
 
     if (typeof window.saveRoomState === 'function') {
