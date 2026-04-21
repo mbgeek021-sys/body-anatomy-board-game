@@ -271,29 +271,6 @@ window.boardMarkup = function(){
         />
       </div>
 
-      <div
-        style="
-          position:absolute;
-          left:50%;
-          top:4%;
-          transform:translateX(-50%);
-          z-index:6;
-          padding:12px 26px;
-          border-radius:999px;
-          font-size:24px;
-          font-weight:1000;
-          letter-spacing:.04em;
-          color:#fff4a5;
-          background:linear-gradient(145deg,#d4562e,#f28d2d);
-          box-shadow:0 10px 24px rgba(0,0,0,.22);
-        "
-      >
-        ANATOMY GO!
-      </div>
-
-      <div class="board-label finish" style="top:1.5%;left:50%;transform:translateX(-50%);">FINISH</div>
-      <div class="board-label start" style="bottom:2.5%;left:14%;">START</div>
-
       ${spacesMarkup}
     </div>
   `;
