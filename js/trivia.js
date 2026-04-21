@@ -1,82 +1,127 @@
 window.TRIVIA_QUESTIONS = [
   {
-    q: 'Which structure carries oxygenated blood from the left ventricle to the systemic circulation?',
-    choices: ['Pulmonary artery', 'Aorta', 'Superior vena cava', 'Coronary sinus'],
-    answer: 'Aorta'
+    q: "Which chamber of the heart pumps oxygenated blood to the body?",
+    choices: ["Left Ventricle", "Right Ventricle", "Left Atrium", "Right Atrium"],
+    answer: "Left Ventricle"
   },
   {
-    q: 'Which bone forms the superior part of the nasal septum?',
-    choices: ['Vomer', 'Ethmoid', 'Maxilla', 'Sphenoid'],
-    answer: 'Ethmoid'
+    q: "Which bone protects the brain?",
+    choices: ["Scapula", "Cranium", "Femur", "Sternum"],
+    answer: "Cranium"
   },
   {
-    q: 'Which part of the small intestine is the primary site of most nutrient absorption?',
-    choices: ['Duodenum', 'Jejunum', 'Ileum', 'Cecum'],
-    answer: 'Jejunum'
+    q: "What is the largest organ of the human body?",
+    choices: ["Liver", "Skin", "Lung", "Heart"],
+    answer: "Skin"
   },
   {
-    q: 'The functional unit of the kidney is the:',
-    choices: ['Neuron', 'Nephron', 'Alveolus', 'Hepatocyte'],
-    answer: 'Nephron'
+    q: "Which vessel carries blood away from the heart?",
+    choices: ["Vein", "Capillary", "Artery", "Valve"],
+    answer: "Artery"
   },
   {
-    q: 'Which cranial nerve is primarily responsible for facial expression?',
-    choices: ['Trigeminal nerve', 'Facial nerve', 'Glossopharyngeal nerve', 'Vagus nerve'],
-    answer: 'Facial nerve'
+    q: "What structure separates the chest cavity from the abdomen?",
+    choices: ["Pelvis", "Diaphragm", "Sternum", "Esophagus"],
+    answer: "Diaphragm"
   },
   {
-    q: 'Which heart valve lies between the left atrium and left ventricle?',
-    choices: ['Tricuspid valve', 'Pulmonary valve', 'Mitral valve', 'Aortic valve'],
-    answer: 'Mitral valve'
+    q: "Which part of the brain controls balance?",
+    choices: ["Cerebellum", "Medulla", "Frontal Lobe", "Hypothalamus"],
+    answer: "Cerebellum"
   },
   {
-    q: 'Which blood vessel returns oxygenated blood from the lungs to the heart?',
-    choices: ['Pulmonary vein', 'Pulmonary artery', 'Aorta', 'Inferior vena cava'],
-    answer: 'Pulmonary vein'
+    q: "How many lobes does the right lung have?",
+    choices: ["1", "2", "3", "4"],
+    answer: "3"
   },
   {
-    q: 'The patella is classified as what type of bone?',
-    choices: ['Flat bone', 'Long bone', 'Sesamoid bone', 'Irregular bone'],
-    answer: 'Sesamoid bone'
+    q: "Which bone is known as the collarbone?",
+    choices: ["Scapula", "Clavicle", "Radius", "Ulna"],
+    answer: "Clavicle"
   },
   {
-    q: 'Which lobe of the brain is most associated with primary visual processing?',
-    choices: ['Frontal lobe', 'Temporal lobe', 'Parietal lobe', 'Occipital lobe'],
-    answer: 'Occipital lobe'
+    q: "What is the functional unit of the kidney?",
+    choices: ["Neuron", "Nephron", "Alveoli", "Osteon"],
+    answer: "Nephron"
   },
   {
-    q: 'Which chamber of the heart has the thickest myocardium?',
-    choices: ['Right atrium', 'Left atrium', 'Right ventricle', 'Left ventricle'],
-    answer: 'Left ventricle'
+    q: "Which blood cells help fight infection?",
+    choices: ["Platelets", "Red Blood Cells", "White Blood Cells", "Plasma"],
+    answer: "White Blood Cells"
   },
   {
-    q: 'Which cartilage structure prevents food from entering the trachea during swallowing?',
-    choices: ['Thyroid cartilage', 'Cricoid cartilage', 'Epiglottis', 'Arytenoid cartilage'],
-    answer: 'Epiglottis'
+    q: "Which vertebrae are found in the neck?",
+    choices: ["Thoracic", "Lumbar", "Cervical", "Sacral"],
+    answer: "Cervical"
   },
   {
-    q: 'Which electrolyte is most important for depolarization of neurons and muscle cells?',
-    choices: ['Calcium', 'Potassium', 'Sodium', 'Magnesium'],
-    answer: 'Sodium'
+    q: "What is the kneecap called?",
+    choices: ["Fibula", "Patella", "Femur", "Tibia"],
+    answer: "Patella"
   },
   {
-    q: 'Which connective tissue structure attaches muscle to bone?',
-    choices: ['Ligament', 'Tendon', 'Cartilage', 'Fascia'],
-    answer: 'Tendon'
+    q: "Which organ stores bile?",
+    choices: ["Pancreas", "Gallbladder", "Liver", "Kidney"],
+    answer: "Gallbladder"
   },
   {
-    q: 'Which organ is primarily responsible for storing and concentrating bile?',
-    choices: ['Liver', 'Pancreas', 'Gallbladder', 'Spleen'],
-    answer: 'Gallbladder'
+    q: "Which muscle is primarily used for breathing?",
+    choices: ["Biceps", "Diaphragm", "Quadriceps", "Latissimus"],
+    answer: "Diaphragm"
   },
   {
-    q: 'Which vessel supplies the myocardium directly with oxygenated blood?',
-    choices: ['Pulmonary trunk', 'Coronary arteries', 'Brachiocephalic trunk', 'Carotid arteries'],
-    answer: 'Coronary arteries'
+    q: "Which side of the heart receives deoxygenated blood?",
+    choices: ["Left Side", "Right Side", "Both", "Neither"],
+    answer: "Right Side"
   },
   {
-    q: 'What is the name of the membrane that directly covers the lungs?',
-    choices: ['Parietal pleura', 'Visceral pleura', 'Pericardium', 'Peritoneum'],
-    answer: 'Visceral pleura'
+    q: "Which bone is the longest in the body?",
+    choices: ["Humerus", "Tibia", "Femur", "Radius"],
+    answer: "Femur"
+  },
+  {
+    q: "What are air sacs in the lungs called?",
+    choices: ["Nephrons", "Alveoli", "Bronchi", "Villi"],
+    answer: "Alveoli"
+  },
+  {
+    q: "Which organ produces insulin?",
+    choices: ["Liver", "Gallbladder", "Pancreas", "Kidney"],
+    answer: "Pancreas"
+  },
+  {
+    q: "Which part of the eye controls the amount of light entering?",
+    choices: ["Retina", "Cornea", "Iris", "Lens"],
+    answer: "Iris"
+  },
+  {
+    q: "What tissue connects muscle to bone?",
+    choices: ["Ligament", "Tendon", "Cartilage", "Fascia"],
+    answer: "Tendon"
+  },
+  {
+    q: "What tissue connects bone to bone?",
+    choices: ["Ligament", "Tendon", "Muscle", "Membrane"],
+    answer: "Ligament"
+  },
+  {
+    q: "Which organ filters blood to create urine?",
+    choices: ["Liver", "Kidney", "Spleen", "Colon"],
+    answer: "Kidney"
+  },
+  {
+    q: "Which blood type is the universal donor?",
+    choices: ["AB+", "O-", "A+", "B-"],
+    answer: "O-"
+  },
+  {
+    q: "Which part of the digestive tract absorbs most nutrients?",
+    choices: ["Stomach", "Large Intestine", "Small Intestine", "Esophagus"],
+    answer: "Small Intestine"
+  },
+  {
+    q: "Which skull bone forms the forehead?",
+    choices: ["Temporal", "Frontal", "Occipital", "Parietal"],
+    answer: "Frontal"
   }
 ];
