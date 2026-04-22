@@ -4,6 +4,7 @@ window.sb = null;
 window.pollTimer = null;
 window.lastServerSnapshot = '';
 window.lastEventIdSeen = null;
+window.localActionLock = false;
 
 window.initSupabase = function () {
   if (!window.supabase || typeof window.supabase.createClient !== 'function') {
@@ -176,22 +177,17 @@ window.joinRoomStateOnly = async function () {
       name: state.lobbyName
     };
   } else {
-    const newPlayer =
-      typeof window.createBasePlayer === 'function'
-        ? window.createBasePlayer(window.clientId, state.lobbyName)
-        : {
-            id: players.length + 1,
-            name: state.lobbyName,
-            ownerId: window.clientId,
-            position: 0,
-            shields: 0,
-            score: 0,
-            skipped: 0,
-            quarantined: 0,
-            organs: []
-          };
-
-    players.push(newPlayer);
+    players.push({
+      id: players.length + 1,
+      name: state.lobbyName,
+      ownerId: window.clientId,
+      position: 0,
+      shields: 0,
+      score: 0,
+      skipped: 0,
+      quarantined: 0,
+      organs: []
+    });
   }
 
   players = window.normalizeServerPlayers(players);
@@ -263,6 +259,8 @@ window.saveRoomState = async function () {
 };
 
 window.refreshFromServer = async function () {
+  if (window.localActionLock) return;
+
   const room = await window.fetchRoom();
   const roomState = room?.state_json || window.defaultRoomState();
 
