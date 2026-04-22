@@ -117,12 +117,13 @@ window.normalizeServerPlayers = function (players) {
   }));
 };
 
-window.addRoomEvent = function (message, sound = null) {
+window.addRoomEvent = function (message, sound = null, actorId = null) {
   const event = {
     id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     at: Date.now(),
     message,
-    sound
+    sound,
+    actorId: actorId || window.clientId
   };
 
   state.activeEvent = event;
@@ -135,6 +136,10 @@ window.playNetworkEventSound = function (event) {
   if (window.lastEventIdSeen === event.id) return;
 
   window.lastEventIdSeen = event.id;
+
+  if (event.actorId && event.actorId === window.clientId) {
+    return;
+  }
 
   switch (event.sound) {
     case 'dice':
@@ -191,24 +196,22 @@ window.joinRoomStateOnly = async function () {
 
   players = window.normalizeServerPlayers(players);
 
+  const joinEvent = {
+    id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    at: Date.now(),
+    message: `${state.lobbyName} joined the room.`,
+    sound: 'start',
+    actorId: window.clientId
+  };
+
   const nextState = {
     ...window.defaultRoomState(),
     ...roomState,
     players,
-    activeEvent: {
-      id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      at: Date.now(),
-      message: `${state.lobbyName} joined the room.`,
-      sound: 'start'
-    },
+    activeEvent: joinEvent,
     eventLog: [
       ...(Array.isArray(roomState.eventLog) ? roomState.eventLog : []),
-      {
-        id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        at: Date.now(),
-        message: `${state.lobbyName} joined the room.`,
-        sound: 'start'
-      }
+      joinEvent
     ].slice(-25)
   };
 
@@ -267,16 +270,7 @@ window.refreshFromServer = async function () {
   if (snapshot === window.lastServerSnapshot) return;
 
   window.lastServerSnapshot = snapshot;
-
-  const previousRolling = !!state.isRolling;
-  const previousPosition = JSON.stringify((state.players || []).map(p => p.position));
-  const nextPosition = JSON.stringify(((roomState.players || [])).map(p => p.position));
-
   window.applyRoomState(roomState);
-
-  if (!previousRolling && previousPosition !== nextPosition && !state.trivia) {
-    window.playMoveSound?.();
-  }
 
   if (state.activeEvent) {
     window.playNetworkEventSound(state.activeEvent);
