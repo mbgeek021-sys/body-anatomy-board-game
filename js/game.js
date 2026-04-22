@@ -188,6 +188,7 @@ window.handleRoll = async function(){
   }
 
   state.isRolling = true;
+  window.localActionLock = true;
   state.feedback = null;
   state.trivia = null;
   window.safeRender();
@@ -248,6 +249,7 @@ window.handleRoll = async function(){
     state.lastCard = { text: error?.message || 'Roll failed.' };
   } finally {
     state.isRolling = false;
+    window.localActionLock = false;
 
     await window.runSafe(async () => {
       if (typeof window.saveRoomState === 'function') {
@@ -262,14 +264,20 @@ window.handleRoll = async function(){
 window.submitTrivia = async function(choice){
   if (!state.trivia) return;
 
+  window.localActionLock = true;
   state.players = window.ensurePlayersShape(state.players);
 
   const current = window.currentPlayer();
   const mine = window.myPlayer();
 
-  if (!current || !mine) return;
+  if (!current || !mine) {
+    window.localActionLock = false;
+    return;
+  }
+
   if (current.ownerId !== mine.ownerId) {
     state.lastCard = { text: `Waiting for ${window.getPlayerName(current)} to answer...` };
+    window.localActionLock = false;
     window.safeRender();
     return;
   }
@@ -306,6 +314,7 @@ window.submitTrivia = async function(choice){
     }
   }, 'Could not save trivia result.');
 
+  window.localActionLock = false;
   window.safeRender();
 };
 
