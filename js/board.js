@@ -6,19 +6,19 @@ window.createTrailAt = function(space){
   dot.style.position = 'absolute';
   dot.style.left = `${space.x}%`;
   dot.style.top = `${space.y}%`;
-  dot.style.width = '18px';
-  dot.style.height = '18px';
+  dot.style.width = '16px';
+  dot.style.height = '16px';
   dot.style.borderRadius = '999px';
   dot.style.transform = 'translate(-50%,-50%)';
-  dot.style.background = '#ffffff';
-  dot.style.boxShadow = '0 0 20px rgba(255,255,255,.9)';
-  dot.style.zIndex = '40';
+  dot.style.background = '#fff';
+  dot.style.boxShadow = '0 0 18px rgba(255,255,255,.95)';
+  dot.style.zIndex = '50';
   shell.appendChild(dot);
 
   dot.animate(
     [
       { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' },
-      { opacity: 0, transform: 'translate(-50%,-50%) scale(2)' }
+      { opacity: 0, transform: 'translate(-50%,-50%) scale(2.1)' }
     ],
     { duration: 420, easing: 'ease-out' }
   );
@@ -57,7 +57,7 @@ window.pulseLanding = function(id){
   tile.animate(
     [
       { transform: 'translate(-50%,-50%) scale(1)' },
-      { transform: 'translate(-50%,-50%) scale(1.12)' },
+      { transform: 'translate(-50%,-50%) scale(1.1)' },
       { transform: 'translate(-50%,-50%) scale(1)' }
     ],
     { duration: 260, easing: 'ease-out' }
@@ -66,14 +66,14 @@ window.pulseLanding = function(id){
 
 window.getTileColor = function(type){
   switch(type){
-    case 'start': return 'linear-gradient(135deg,#2fd67b,#18b764)';
-    case 'finish': return 'linear-gradient(135deg,#9b5cff,#6d3cff)';
-    case 'safe': return 'linear-gradient(135deg,#20c7d3,#1098b8)';
-    case 'health': return 'linear-gradient(135deg,#3d8bff,#2367e8)';
-    case 'risk': return 'linear-gradient(135deg,#ff5f87,#e53d68)';
-    case 'chance': return 'linear-gradient(135deg,#865dff,#6947ec)';
-    case 'quarantine': return 'linear-gradient(135deg,#ffb938,#f28a16)';
-    default: return 'linear-gradient(135deg,#304866,#213348)';
+    case 'start': return 'linear-gradient(135deg,#31d97f,#19b768)';
+    case 'finish': return 'linear-gradient(135deg,#a766ff,#713dff)';
+    case 'safe': return 'linear-gradient(135deg,#20d5ce,#0fa2a8)';
+    case 'health': return 'linear-gradient(135deg,#49a8ff,#2f73ff)';
+    case 'risk': return 'linear-gradient(135deg,#ff6995,#ea476f)';
+    case 'chance': return 'linear-gradient(135deg,#8d6cff,#624def)';
+    case 'quarantine': return 'linear-gradient(135deg,#ffc14b,#f08f1f)';
+    default: return 'linear-gradient(135deg,#344c69,#243549)';
   }
 };
 
@@ -132,36 +132,49 @@ window.getTileEmoji = function(name){
 };
 
 window.getBoardSpaces = function(){
-  const path = [
-    // outer ring from bottom-left going right, then up, then left, then down
-    ['Start',16,82], ['Heel',28,82], ['Toes',40,82], ['Talus',52,82], ['Calcaneus',64,82], ['Achilles',76,82],
-    ['Tibia',76,70], ['Fibula',76,58], ['Patella',76,46], ['Quadriceps',76,34], ['Hamstrings',76,22], ['Femur',76,10],
-    ['Hip Joint',64,10], ['Pelvis',52,10], ['Bladder',40,10], ['Uterus',28,10], ['Colon',16,10],
-    ['Appendix',16,22], ['Rectum',16,34], ['Small Intestine',16,46], ['Gallbladder',16,58], ['Liver',16,70],
-
-    // middle ring
-    ['Pancreas',28,70], ['Spleen',40,70], ['Stomach',52,70], ['Esophagus',64,70],
-    ['Diaphragm',64,58], ['Aorta',64,46], ['Ribs',64,34], ['Sternum',64,22],
-    ['Lungs',52,22], ['Bronchi',40,22], ['Trachea',28,22],
-    ['Heart',28,34], ['Clavicle',28,46], ['Scapula',28,58],
-
-    // inner ring
-    ['Humerus',40,58], ['Radius',52,58],
-    ['Ulna',52,46], ['Thumb',52,34],
-    ['Eyes',40,34], ['Teeth',40,46],
-
-    // center finish path
-    ['Nasal Cavity',46,52], ['Temporal Bone',58,52], ['Frontal Bone',58,40], ['Cranium',46,40], ['Brain Stem',46,28], ['Brain',52,28]
+  const names = [
+    'Start','Heel','Toes','Talus','Calcaneus','Achilles',
+    'Tibia','Fibula','Patella','Quadriceps','Hamstrings',
+    'Femur','Hip Joint','Pelvis','Bladder','Uterus',
+    'Colon','Appendix','Rectum','Small Intestine',
+    'Gallbladder','Liver','Pancreas','Spleen','Stomach',
+    'Esophagus','Diaphragm','Aorta','Ribs','Sternum',
+    'Lungs','Bronchi','Trachea','Heart','Clavicle',
+    'Scapula','Humerus','Radius','Ulna','Thumb',
+    'Eyes','Teeth','Nasal Cavity','Temporal Bone',
+    'Frontal Bone','Cranium','Brain Stem','Brain'
   ];
 
-  return path.map(([name, x, y], i) => ({
+  // True spiral order on a 7x7 grid.
+  // We leave the very center open for the anatomy image.
+  const spiralCells = [
+    [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],
+    [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+    [0,5],[0,4],[0,3],[0,2],[0,1],[0,0],
+    [1,0],[2,0],[3,0],[4,0],[5,0],
+    [5,1],[5,2],[5,3],[5,4],[5,5],
+    [4,5],[3,5],[2,5],[1,5],
+    [1,4],[1,3],[1,2],[1,1],
+    [2,1],[3,1],[4,1],
+    [4,2],[4,3],[4,4],
+    [3,4],[2,4],[2,3],[2,2],[3,2]
+  ];
+
+  const minX = 18;
+  const maxX = 82;
+  const minY = 12;
+  const maxY = 88;
+  const stepX = (maxX - minX) / 6;
+  const stepY = (maxY - minY) / 6;
+
+  return spiralCells.slice(0, names.length).map(([row, col], i) => ({
     id: i,
-    name,
-    x,
-    y,
+    name: names[i],
+    x: minX + col * stepX,
+    y: minY + row * stepY,
     type:
       i === 0 ? 'start' :
-      i === path.length - 1 ? 'finish' :
+      i === names.length - 1 ? 'finish' :
       i % 11 === 0 ? 'quarantine' :
       i % 8 === 0 ? 'risk' :
       i % 6 === 0 ? 'chance' :
@@ -190,14 +203,14 @@ window.boardMarkup = function(){
           left:${space.x}%;
           top:${space.y}%;
           transform:translate(-50%,-50%);
-          width:84px;
-          height:84px;
-          border-radius:20px;
+          width:82px;
+          height:82px;
+          border-radius:22px;
           background:${window.getTileColor(space.type)};
-          border:${isActive ? '3px solid #fff5a8' : '2px solid rgba(255,255,255,.18)'};
+          border:${isActive ? '3px solid #fff6ad' : '2px solid rgba(255,255,255,.16)'};
           box-shadow:${isActive
-            ? '0 0 26px rgba(255,245,168,.9), 0 12px 24px rgba(0,0,0,.24)'
-            : '0 10px 18px rgba(0,0,0,.22)'};
+            ? '0 0 22px rgba(255,246,173,.95), 0 12px 24px rgba(0,0,0,.24)'
+            : '0 10px 18px rgba(0,0,0,.20)'};
           display:flex;
           flex-direction:column;
           align-items:center;
@@ -247,14 +260,14 @@ window.boardMarkup = function(){
               height:24px;
               padding:0 6px;
               border-radius:999px;
-              background:#0d1b2a;
+              background:#081522;
               color:white;
               font-size:13px;
               font-weight:1000;
               display:flex;
               align-items:center;
               justify-content:center;
-              box-shadow:0 4px 10px rgba(0,0,0,.28);
+              box-shadow:0 4px 10px rgba(0,0,0,.26);
             ">
               ${window.getPlayerToken(i)}
             </div>
@@ -275,15 +288,15 @@ window.boardMarkup = function(){
         overflow:hidden;
         background:
           radial-gradient(circle at center, rgba(255,255,255,.08), transparent 28%),
-          linear-gradient(180deg,#a7cbc1 0%, #8eaea6 100%);
+          linear-gradient(180deg,#abd0c7 0%, #92b8af 100%);
       "
     >
       <div style="
         position:absolute;
         left:50%;
-        top:44%;
-        width:20%;
-        height:56%;
+        top:50%;
+        width:18%;
+        height:54%;
         transform:translate(-50%,-50%);
         z-index:1;
         display:flex;
@@ -299,7 +312,8 @@ window.boardMarkup = function(){
             width:100%;
             height:100%;
             object-fit:contain;
-            filter:drop-shadow(0 18px 30px rgba(0,0,0,.24));
+            filter:drop-shadow(0 16px 28px rgba(0,0,0,.22));
+            opacity:.95;
           "
         />
       </div>
