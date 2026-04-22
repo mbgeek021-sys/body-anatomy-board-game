@@ -1,357 +1,339 @@
-window.getPlayerName = function(player){
-  if (!player) return 'Player';
-  return player.name || `Player ${player.id || ''}`.trim();
+window.createTrailAt = function(space){
+  const shell = document.querySelector('.board-stage');
+  if (!shell || !space) return;
+
+  const dot = document.createElement('div');
+  dot.style.position = 'absolute';
+  dot.style.left = `${space.x}%`;
+  dot.style.top = `${space.y}%`;
+  dot.style.width = '16px';
+  dot.style.height = '16px';
+  dot.style.borderRadius = '999px';
+  dot.style.transform = 'translate(-50%,-50%)';
+  dot.style.background = '#fff';
+  dot.style.boxShadow = '0 0 18px rgba(255,255,255,.95)';
+  dot.style.zIndex = '50';
+  shell.appendChild(dot);
+
+  dot.animate(
+    [
+      { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' },
+      { opacity: 0, transform: 'translate(-50%,-50%) scale(2.1)' }
+    ],
+    { duration: 420, easing: 'ease-out' }
+  );
+
+  setTimeout(() => dot.remove(), 430);
 };
 
-window.getPlayerToken = function(index){
-  const tokens = ['🩺','💉','💊','🩹','🌡️','🫀','🧠','❤️'];
-  return tokens[((index ?? 0) % tokens.length + tokens.length) % tokens.length];
-};
+window.showDiceRoll = async function(roll){
+  const overlay = document.getElementById('diceOverlay');
+  const box = document.getElementById('diceBox');
+  const label = document.getElementById('diceLabel');
 
-window.currentPlayer = function(){
-  if (!Array.isArray(state.players) || !state.players.length) return null;
-  const idx = Math.max(0, Math.min(state.currentPlayerIndex || 0, state.players.length - 1));
-  return state.players[idx];
-};
+  if (!overlay || !box || !label) return;
 
-window.myPlayer = function(){
-  if (!Array.isArray(state.players)) return null;
-  return state.players.find(p => p.ownerId === window.clientId) || null;
-};
+  overlay.classList.remove('hidden');
+  label.textContent = 'Rolling...';
 
-window.ensurePlayersShape = function(players){
-  const safePlayers = Array.isArray(players) ? players : [];
+  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 
-  if (typeof window.normalizeServerPlayers === 'function') {
-    try { return window.normalizeServerPlayers(safePlayers); } catch {}
+  for(let i = 0; i < 10; i++){
+    box.textContent = faces[Math.floor(Math.random() * 6)];
+    await new Promise(r => setTimeout(r, 70));
   }
 
-  return safePlayers.map((p, i) => ({
-    id: p.id || i + 1,
-    name: p.name || `Player ${i + 1}`,
-    ownerId: p.ownerId || `local-${i + 1}`,
-    position: Number.isFinite(p.position) ? p.position : 0,
-    shields: Number.isFinite(p.shields) ? p.shields : 0,
-    score: Number.isFinite(p.score) ? p.score : 0,
-    skipped: Number.isFinite(p.skipped) ? p.skipped : 0,
-    quarantined: Number.isFinite(p.quarantined) ? p.quarantined : 0,
-    organs: Array.isArray(p.organs) ? p.organs : []
+  box.textContent = roll;
+  label.textContent = `Rolled ${roll}`;
+  await new Promise(r => setTimeout(r, 500));
+
+  overlay.classList.add('hidden');
+};
+
+window.pulseLanding = function(id){
+  const tile = document.querySelector(`[data-space-id="${id}"]`);
+  if (!tile) return;
+
+  tile.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(1)' },
+      { transform: 'translate(-50%,-50%) scale(1.1)' },
+      { transform: 'translate(-50%,-50%) scale(1)' }
+    ],
+    { duration: 260, easing: 'ease-out' }
+  );
+};
+
+window.getTileColor = function(type){
+  switch(type){
+    case 'start': return 'linear-gradient(135deg,#31d97f,#19b768)';
+    case 'finish': return 'linear-gradient(135deg,#a766ff,#713dff)';
+    case 'safe': return 'linear-gradient(135deg,#20d5ce,#0fa2a8)';
+    case 'health': return 'linear-gradient(135deg,#49a8ff,#2f73ff)';
+    case 'risk': return 'linear-gradient(135deg,#ff6995,#ea476f)';
+    case 'chance': return 'linear-gradient(135deg,#8d6cff,#624def)';
+    case 'quarantine': return 'linear-gradient(135deg,#ffc14b,#f08f1f)';
+    default: return 'linear-gradient(135deg,#344c69,#243549)';
+  }
+};
+
+window.getTileEmoji = function(name){
+  const map = {
+    Start:'⭐',
+    Heel:'🦶',
+    Toes:'🦶',
+    Talus:'🦴',
+    Calcaneus:'🦶',
+    Achilles:'🦶',
+    Tibia:'🦴',
+    Fibula:'🦴',
+    Patella:'🦴',
+    Quadriceps:'🦵',
+    Hamstrings:'🦵',
+    Femur:'🦴',
+    'Hip Joint':'🦴',
+    Pelvis:'🦴',
+    Bladder:'💧',
+    Uterus:'♀️',
+    Colon:'🧫',
+    Appendix:'🧫',
+    Rectum:'🧫',
+    'Small Intestine':'🧫',
+    Gallbladder:'🟢',
+    Liver:'🟤',
+    Pancreas:'🧪',
+    Spleen:'🩸',
+    Stomach:'🍽️',
+    Esophagus:'🥼',
+    Diaphragm:'🫁',
+    Aorta:'🫀',
+    Ribs:'🦴',
+    Sternum:'🦴',
+    Lungs:'🫁',
+    Bronchi:'🫁',
+    Trachea:'🫁',
+    Heart:'🫀',
+    Clavicle:'🦴',
+    Scapula:'🦴',
+    Humerus:'🦴',
+    Radius:'🦴',
+    Ulna:'🦴',
+    Thumb:'✋',
+    Eyes:'👁️',
+    Teeth:'🦷',
+    'Nasal Cavity':'👃',
+    'Temporal Bone':'💀',
+    'Frontal Bone':'💀',
+    Cranium:'💀',
+    'Brain Stem':'🧠',
+    Brain:'🧠'
+  };
+  return map[name] || '🔬';
+};
+
+window.getBoardSpaces = function(){
+  const names = [
+    'Start','Heel','Toes','Talus','Calcaneus','Achilles',
+    'Tibia','Fibula','Patella','Quadriceps','Hamstrings',
+    'Femur','Hip Joint','Pelvis','Bladder','Uterus',
+    'Colon','Appendix','Rectum','Small Intestine',
+    'Gallbladder','Liver','Pancreas','Spleen','Stomach',
+    'Esophagus','Diaphragm','Aorta','Ribs','Sternum',
+    'Lungs','Bronchi','Trachea','Heart','Clavicle',
+    'Scapula','Humerus','Radius','Ulna','Thumb',
+    'Eyes','Teeth','Nasal Cavity','Temporal Bone',
+    'Frontal Bone','Cranium','Brain Stem','Brain'
+  ];
+
+  const spiralCells = [
+    [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],
+    [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+    [0,5],[0,4],[0,3],[0,2],[0,1],[0,0],
+    [1,0],[2,0],[3,0],[4,0],[5,0],
+    [5,1],[5,2],[5,3],[5,4],[5,5],
+    [4,5],[3,5],[2,5],[1,5],
+    [1,4],[1,3],[1,2],[1,1],
+    [2,1],[3,1],[4,1],
+    [4,2],[4,3],[4,4],
+    [3,4],[2,4],[2,3],[2,2],[3,2]
+  ];
+
+  const minX = 18;
+  const maxX = 82;
+  const minY = 12;
+  const maxY = 88;
+  const stepX = (maxX - minX) / 6;
+  const stepY = (maxY - minY) / 6;
+
+  return spiralCells.slice(0, names.length).map(([row, col], i) => ({
+    id: i,
+    name: names[i],
+    x: minX + col * stepX,
+    y: minY + row * stepY,
+    type:
+      i === 0 ? 'start' :
+      i === names.length - 1 ? 'finish' :
+      i % 11 === 0 ? 'quarantine' :
+      i % 8 === 0 ? 'risk' :
+      i % 6 === 0 ? 'chance' :
+      i % 5 === 0 ? 'safe' :
+      i % 4 === 0 ? 'health' :
+      'normal'
   }));
 };
 
-window.delay = function(ms){
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
+window.boardMarkup = function(){
+  const spaces = window.getBoardSpaces();
+  const players = Array.isArray(state.players) ? state.players : [];
+  const cp = typeof window.currentPlayer === 'function' ? window.currentPlayer() : null;
+  const currentPos = cp ? cp.position : null;
+  const img = window.APP_CONFIG?.ANATOMY_IMAGE_URL || './body anatomy mib.png';
 
-window.rollDie = function(){
-  return Math.floor(Math.random() * 6) + 1;
-};
+  const tilesHtml = spaces.map(space => {
+    const onTile = players.filter(p => p.position === space.id);
+    const isActive = currentPos === space.id;
+    const isFinish = space.type === 'finish';
 
-window.advanceTurn = function(){
-  if (!Array.isArray(state.players) || !state.players.length) return;
-  state.currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
-};
+    return `
+      <div
+        data-space-id="${space.id}"
+        style="
+          position:absolute;
+          left:${space.x}%;
+          top:${space.y}%;
+          transform:translate(-50%,-50%);
+          width:${isFinish ? '90px' : '82px'};
+          height:${isFinish ? '90px' : '82px'};
+          border-radius:22px;
+          background:${window.getTileColor(space.type)};
+          border:${isActive ? '3px solid #fff6ad' : '2px solid rgba(255,255,255,.16)'};
+          box-shadow:${isActive
+            ? '0 0 22px rgba(255,246,173,.95), 0 12px 24px rgba(0,0,0,.24)'
+            : isFinish
+              ? '0 0 20px rgba(167,102,255,.6), 0 12px 24px rgba(0,0,0,.22)'
+              : '0 10px 18px rgba(0,0,0,.20)'};
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          justify-content:center;
+          padding:6px;
+          color:white;
+          text-align:center;
+          z-index:${isActive ? 20 : 10};
+          overflow:hidden;
+        "
+      >
+        <div style="
+          position:absolute;
+          top:0;
+          left:10%;
+          width:80%;
+          height:16px;
+          border-radius:0 0 12px 12px;
+          background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0));
+        "></div>
 
-window.shouldTriggerTrivia = function(space){
-  if (!space) return false;
-  return ['chance','health','risk','safe'].includes(space.type);
-};
+        ${isFinish ? `
+          <div style="
+            position:absolute;
+            top:6px;
+            right:6px;
+            font-size:8px;
+            font-weight:1000;
+            letter-spacing:.08em;
+            background:rgba(255,255,255,.18);
+            padding:3px 6px;
+            border-radius:999px;
+          ">FINISH</div>
+        ` : ''}
 
-window.pushSharedEvent = function(message, sound = null){
-  if (typeof window.addRoomEvent === 'function') {
-    window.addRoomEvent(message, sound, window.clientId);
-  } else {
-    state.lastCard = { text: message };
-  }
-};
+        <div style="font-size:9px;font-weight:1000;opacity:.8;">#${space.id}</div>
+        <div style="font-size:${isFinish ? '20px' : '18px'};line-height:1;">${window.getTileEmoji(space.name)}</div>
+        <div style="
+          font-size:${isFinish ? '11px' : '10px'};
+          font-weight:1000;
+          line-height:1.05;
+          max-width:100%;
+          white-space:nowrap;
+          overflow:hidden;
+          text-overflow:ellipsis;
+        ">
+          ${window.escapeHtml(space.name)}
+        </div>
 
-window.applySpaceEffect = function(player, landedSpace){
-  let text = `${window.getPlayerName(player)} landed on ${landedSpace.name}.`;
+        <div style="
+          display:flex;
+          gap:4px;
+          flex-wrap:wrap;
+          justify-content:center;
+          margin-top:4px;
+          min-height:18px;
+        ">
+          ${onTile.map((p, i) => `
+            <div style="
+              min-width:24px;
+              height:24px;
+              padding:0 6px;
+              border-radius:999px;
+              background:#081522;
+              color:white;
+              font-size:13px;
+              font-weight:1000;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              box-shadow:0 4px 10px rgba(0,0,0,.26);
+            ">
+              ${window.getPlayerToken(i)}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
 
-  switch (landedSpace.type) {
-    case 'safe':
-      player.shields = (player.shields || 0) + 1;
-      player.score = (player.score || 0) + 1;
-      text = `${window.getPlayerName(player)} reached a safe point and gained 1 shield.`;
-      break;
+  return `
+    <div
+      class="board-stage"
+      style="
+        position:relative;
+        width:100%;
+        min-height:760px;
+        border-radius:34px;
+        overflow:hidden;
+        background:
+          radial-gradient(circle at center, rgba(255,255,255,.08), transparent 28%),
+          linear-gradient(180deg,#abd0c7 0%, #92b8af 100%);
+      "
+    >
+      <div style="
+        position:absolute;
+        left:50%;
+        top:50%;
+        width:18%;
+        height:54%;
+        transform:translate(-50%,-50%);
+        z-index:1;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        pointer-events:none;
+      ">
+        <img
+          src="${img}"
+          alt="anatomy"
+          onerror="this.style.display='none'"
+          style="
+            width:100%;
+            height:100%;
+            object-fit:contain;
+            filter:drop-shadow(0 16px 28px rgba(0,0,0,.22));
+            opacity:.95;
+          "
+        />
+      </div>
 
-    case 'health':
-      player.score = (player.score || 0) + 2;
-      text = `${window.getPlayerName(player)} found a health bonus and gained 2 points.`;
-      break;
-
-    case 'risk':
-      player.score = Math.max(0, (player.score || 0) - 1);
-      text = `${window.getPlayerName(player)} hit a risk tile and lost 1 point.`;
-      break;
-
-    case 'quarantine':
-      player.skipped = 1;
-      text = `${window.getPlayerName(player)} landed on quarantine and will miss the next turn.`;
-      break;
-
-    case 'chance':
-      if (Math.random() < 0.5) {
-        player.score = (player.score || 0) + 2;
-        text = `${window.getPlayerName(player)} got lucky and gained 2 points.`;
-      } else {
-        player.score = Math.max(0, (player.score || 0) - 1);
-        text = `${window.getPlayerName(player)} got unlucky and lost 1 point.`;
-      }
-      break;
-
-    case 'energy':
-      player.score = (player.score || 0) + 3;
-      text = `${window.getPlayerName(player)} found an energy boost and gained 3 points.`;
-      break;
-
-    case 'finish':
-      state.winner = window.getPlayerName(player);
-      text = `${window.getPlayerName(player)} reached the brain and won!`;
-      break;
-  }
-
-  state.lastCard = { text };
-  return text;
-};
-
-window.skipMissedTurnsIfNeeded = async function(){
-  if (!Array.isArray(state.players) || !state.players.length) return false;
-
-  let guard = 0;
-  let skippedAny = false;
-
-  while (guard < state.players.length) {
-    const player = window.currentPlayer();
-    if (!player) break;
-    if ((player.skipped || 0) <= 0) break;
-
-    player.skipped = Math.max(0, (player.skipped || 0) - 1);
-    const msg = `${window.getPlayerName(player)} missed this turn.`;
-    state.lastCard = { text: msg };
-    window.playMissTurnSound?.();
-    window.pushSharedEvent(msg, 'skip');
-
-    skippedAny = true;
-    window.advanceTurn();
-    guard++;
-  }
-
-  if (skippedAny) {
-    state.players = window.ensurePlayersShape(state.players);
-    await window.runSafe(async () => {
-      if (typeof window.saveRoomState === 'function') {
-        await window.saveRoomState();
-      }
-    }, 'Could not save skipped turns.');
-    window.safeRender();
-  }
-
-  return skippedAny;
-};
-
-window.handleRoll = async function(){
-  if (state.isRolling) return;
-  if (state.winner) return;
-  if (state.trivia) return;
-
-  const spaces = typeof window.getBoardSpaces === 'function' ? window.getBoardSpaces() : [];
-  if (!spaces.length) {
-    state.lastCard = { text: 'Board spaces are missing.' };
-    window.safeRender();
-    return;
-  }
-
-  state.players = window.ensurePlayersShape(state.players);
-
-  if (!state.players.length) {
-    state.lastCard = { text: 'No players loaded.' };
-    window.safeRender();
-    return;
-  }
-
-  await window.skipMissedTurnsIfNeeded();
-
-  const current = window.currentPlayer();
-  const mine = window.myPlayer();
-
-  if (!current || !mine) {
-    state.lastCard = { text: 'Player state is missing.' };
-    window.safeRender();
-    return;
-  }
-
-  if (current.ownerId !== mine.ownerId) {
-    state.lastCard = { text: `Waiting for ${window.getPlayerName(current)}...` };
-    window.safeRender();
-    return;
-  }
-
-  state.isRolling = true;
-  window.localActionLock = true;
-  state.feedback = null;
-  state.trivia = null;
-  window.safeRender();
-
-  try {
-    const roll = window.rollDie();
-    state.lastRoll = roll;
-    window.playDiceSound?.();
-    window.pushSharedEvent(`${window.getPlayerName(current)} rolled ${roll}.`, 'dice');
-
-    if (typeof window.showDiceRoll === 'function') {
-      await window.showDiceRoll(roll);
-    }
-
-    const currentIndex = Math.max(0, Math.min(state.currentPlayerIndex || 0, state.players.length - 1));
-
-    for (let step = 0; step < roll; step++) {
-      const livePlayer = state.players[currentIndex];
-      if (!livePlayer) break;
-
-      livePlayer.position = Math.min(spaces.length - 1, (livePlayer.position || 0) + 1);
-      state.players = window.ensurePlayersShape(state.players);
-
-      const liveSpace = spaces[state.players[currentIndex].position];
-
-      if (typeof window.createTrailAt === 'function') {
-        window.createTrailAt(liveSpace);
-      }
-      if (typeof window.pulseLanding === 'function') {
-        window.pulseLanding(state.players[currentIndex].position);
-      }
-
-      window.playMoveSound?.();
-      window.safeRender();
-      await window.delay(180);
-    }
-
-    const player = state.players[currentIndex];
-    const landedSpace = spaces[player.position];
-    const effectText = window.applySpaceEffect(player, landedSpace);
-    window.pushSharedEvent(effectText, landedSpace.type === 'quarantine' ? 'skip' : 'move');
-
-    if (!state.winner && window.shouldTriggerTrivia(landedSpace) && Array.isArray(window.TRIVIA_QUESTIONS) && window.TRIVIA_QUESTIONS.length) {
-      state.trivia = window.TRIVIA_QUESTIONS[Math.floor(Math.random() * window.TRIVIA_QUESTIONS.length)];
-      state.timer = 20;
-      state.lastCard = { text: `${window.getPlayerName(player)} triggered trivia.` };
-      window.pushSharedEvent(`${window.getPlayerName(player)} triggered trivia.`, 'move');
-    } else if (!state.winner) {
-      window.advanceTurn();
-      await window.skipMissedTurnsIfNeeded();
-    }
-
-    state.players = window.ensurePlayersShape(state.players);
-
-    await window.runSafe(async () => {
-      if (typeof window.saveRoomState === 'function') {
-        await window.saveRoomState();
-      }
-    }, 'Could not save roll.');
-
-  } catch (error) {
-    console.error('handleRoll failed:', error);
-    state.lastCard = { text: error?.message || 'Roll failed.' };
-  } finally {
-    state.isRolling = false;
-    window.localActionLock = false;
-
-    await window.runSafe(async () => {
-      if (typeof window.saveRoomState === 'function') {
-        await window.saveRoomState();
-      }
-    }, 'Could not save roll final state.');
-
-    window.safeRender();
-  }
-};
-
-window.submitTrivia = async function(choice){
-  if (!state.trivia) return;
-
-  window.localActionLock = true;
-  state.players = window.ensurePlayersShape(state.players);
-
-  const current = window.currentPlayer();
-  const mine = window.myPlayer();
-
-  if (!current || !mine) {
-    window.localActionLock = false;
-    return;
-  }
-
-  if (current.ownerId !== mine.ownerId) {
-    state.lastCard = { text: `Waiting for ${window.getPlayerName(current)} to answer...` };
-    window.localActionLock = false;
-    window.safeRender();
-    return;
-  }
-
-  const correct = choice === state.trivia.answer;
-
-  if (correct) {
-    current.score = (current.score || 0) + 2;
-    state.feedback = { ok: true, text: 'Correct! +2 points.' };
-    state.lastCard = { text: `${window.getPlayerName(current)} answered correctly and gained 2 points.` };
-    window.playCorrectSound?.();
-    window.pushSharedEvent(`${window.getPlayerName(current)} answered correctly.`, 'correct');
-  } else {
-    current.position = Math.max(0, (current.position || 0) - 2);
-    current.score = Math.max(0, (current.score || 0) - 1);
-    state.feedback = { ok: false, text: 'Wrong! -1 point and move back 2.' };
-    state.lastCard = { text: `${window.getPlayerName(current)} missed the question and moved back 2 spaces.` };
-    window.playWrongSound?.();
-    window.pushSharedEvent(`${window.getPlayerName(current)} answered incorrectly.`, 'wrong');
-  }
-
-  state.players = window.ensurePlayersShape(state.players);
-  state.trivia = null;
-  state.timer = 30;
-
-  if (!state.winner) {
-    window.advanceTurn();
-    await window.skipMissedTurnsIfNeeded();
-  }
-
-  await window.runSafe(async () => {
-    if (typeof window.saveRoomState === 'function') {
-      await window.saveRoomState();
-    }
-  }, 'Could not save trivia result.');
-
-  window.localActionLock = false;
-  window.safeRender();
-};
-
-window.resetGame = async function(){
-  const players = window.ensurePlayersShape(state.players).map((p, i) => ({
-    ...p,
-    id: i + 1,
-    position: 0,
-    shields: 0,
-    score: 0,
-    skipped: 0,
-    quarantined: 0,
-    organs: []
-  }));
-
-  state.players = players;
-  state.currentPlayerIndex = 0;
-  state.lastRoll = null;
-  state.lastCard = { text: 'Game reset.' };
-  state.winner = null;
-  state.feedback = null;
-  state.isRolling = false;
-  state.trivia = null;
-  state.timer = 30;
-  state.eventLog = [];
-  state.activeEvent = null;
-
-  await window.runSafe(async () => {
-    if (typeof window.saveRoomState === 'function') {
-      await window.saveRoomState();
-    }
-  }, 'Could not save reset.');
-
-  window.safeRender();
+      ${tilesHtml}
+    </div>
+  `;
 };
