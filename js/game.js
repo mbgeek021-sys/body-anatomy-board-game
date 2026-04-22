@@ -59,15 +59,10 @@ window.shouldTriggerTrivia = function(space){
 
 window.pushSharedEvent = function(message, sound = null){
   if (typeof window.addRoomEvent === 'function') {
-    window.addRoomEvent(message, sound);
+    window.addRoomEvent(message, sound, window.clientId);
   } else {
     state.lastCard = { text: message };
   }
-};
-
-window.findSpaceByPosition = function(position){
-  const spaces = typeof window.getBoardSpaces === 'function' ? window.getBoardSpaces() : [];
-  return spaces[Math.max(0, Math.min(position || 0, spaces.length - 1))] || null;
 };
 
 window.applySpaceEffect = function(player, landedSpace){
@@ -86,8 +81,8 @@ window.applySpaceEffect = function(player, landedSpace){
       break;
 
     case 'risk':
-      player.position = Math.max(0, (player.position || 0) - 1);
-      text = `${window.getPlayerName(player)} hit a risk tile and moved back 1 space.`;
+      player.score = Math.max(0, (player.score || 0) - 1);
+      text = `${window.getPlayerName(player)} hit a risk tile and lost 1 point.`;
       break;
 
     case 'quarantine':
@@ -97,11 +92,11 @@ window.applySpaceEffect = function(player, landedSpace){
 
     case 'chance':
       if (Math.random() < 0.5) {
-        player.position = Math.min(window.getBoardSpaces().length - 1, (player.position || 0) + 2);
-        text = `${window.getPlayerName(player)} got lucky and jumped ahead 2 spaces.`;
+        player.score = (player.score || 0) + 2;
+        text = `${window.getPlayerName(player)} got lucky and gained 2 points.`;
       } else {
-        player.position = Math.max(0, (player.position || 0) - 2);
-        text = `${window.getPlayerName(player)} got unlucky and moved back 2 spaces.`;
+        player.score = Math.max(0, (player.score || 0) - 1);
+        text = `${window.getPlayerName(player)} got unlucky and lost 1 point.`;
       }
       break;
 
@@ -129,12 +124,12 @@ window.skipMissedTurnsIfNeeded = async function(){
   while (guard < state.players.length) {
     const player = window.currentPlayer();
     if (!player) break;
-
     if ((player.skipped || 0) <= 0) break;
 
     player.skipped = Math.max(0, (player.skipped || 0) - 1);
     const msg = `${window.getPlayerName(player)} missed this turn.`;
     state.lastCard = { text: msg };
+    window.playMissTurnSound?.();
     window.pushSharedEvent(msg, 'skip');
 
     skippedAny = true;
@@ -200,6 +195,7 @@ window.handleRoll = async function(){
   try {
     const roll = window.rollDie();
     state.lastRoll = roll;
+    window.playDiceSound?.();
     window.pushSharedEvent(`${window.getPlayerName(current)} rolled ${roll}.`, 'dice');
 
     if (typeof window.showDiceRoll === 'function') {
@@ -284,15 +280,15 @@ window.submitTrivia = async function(choice){
     current.score = (current.score || 0) + 2;
     state.feedback = { ok: true, text: 'Correct! +2 points.' };
     state.lastCard = { text: `${window.getPlayerName(current)} answered correctly and gained 2 points.` };
-    window.pushSharedEvent(`${window.getPlayerName(current)} answered correctly.`, 'correct');
     window.playCorrectSound?.();
+    window.pushSharedEvent(`${window.getPlayerName(current)} answered correctly.`, 'correct');
   } else {
     current.position = Math.max(0, (current.position || 0) - 2);
     current.score = Math.max(0, (current.score || 0) - 1);
     state.feedback = { ok: false, text: 'Wrong! -1 point and move back 2.' };
     state.lastCard = { text: `${window.getPlayerName(current)} missed the question and moved back 2 spaces.` };
-    window.pushSharedEvent(`${window.getPlayerName(current)} answered incorrectly.`, 'wrong');
     window.playWrongSound?.();
+    window.pushSharedEvent(`${window.getPlayerName(current)} answered incorrectly.`, 'wrong');
   }
 
   state.players = window.ensurePlayersShape(state.players);
