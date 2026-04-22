@@ -204,17 +204,21 @@ window.handleRoll = async function(){
     }
 
     const currentIndex = Math.max(0, Math.min(state.currentPlayerIndex || 0, state.players.length - 1));
-    const player = state.players[currentIndex];
 
     for (let step = 0; step < roll; step++) {
-      player.position = Math.min(spaces.length - 1, (player.position || 0) + 1);
+      const livePlayer = state.players[currentIndex];
+      if (!livePlayer) break;
+
+      livePlayer.position = Math.min(spaces.length - 1, (livePlayer.position || 0) + 1);
       state.players = window.ensurePlayersShape(state.players);
 
+      const liveSpace = spaces[state.players[currentIndex].position];
+
       if (typeof window.createTrailAt === 'function') {
-        window.createTrailAt(spaces[player.position]);
+        window.createTrailAt(liveSpace);
       }
       if (typeof window.pulseLanding === 'function') {
-        window.pulseLanding(player.position);
+        window.pulseLanding(state.players[currentIndex].position);
       }
 
       window.playMoveSound?.();
@@ -222,6 +226,7 @@ window.handleRoll = async function(){
       await window.delay(180);
     }
 
+    const player = state.players[currentIndex];
     const landedSpace = spaces[player.position];
     const effectText = window.applySpaceEffect(player, landedSpace);
     window.pushSharedEvent(effectText, landedSpace.type === 'quarantine' ? 'skip' : 'move');
