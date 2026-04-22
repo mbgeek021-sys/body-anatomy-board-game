@@ -101,7 +101,7 @@ window.getTileEmoji = function(name){
     'Small Intestine':'🧫',
     Gallbladder:'🟢',
     Liver:'🟤',
-    Pancreas:'🧬',
+    Pancreas:'🧪',
     Spleen:'🩸',
     Stomach:'🍽️',
     Esophagus:'🥼',
@@ -132,56 +132,36 @@ window.getTileEmoji = function(name){
 };
 
 window.getBoardSpaces = function(){
-  const names = [
-    'Start','Heel','Toes','Talus','Calcaneus','Achilles',
-    'Tibia','Fibula','Patella','Quadriceps','Hamstrings',
-    'Femur','Hip Joint','Pelvis','Bladder','Uterus',
-    'Colon','Appendix','Rectum','Small Intestine',
-    'Gallbladder','Liver','Pancreas','Spleen','Stomach',
-    'Esophagus','Diaphragm','Aorta','Ribs','Sternum',
-    'Lungs','Bronchi','Trachea','Heart','Clavicle',
-    'Scapula','Humerus','Radius','Ulna','Thumb',
-    'Eyes','Teeth','Nasal Cavity','Temporal Bone',
-    'Frontal Bone','Cranium','Brain Stem','Brain'
+  const path = [
+    // outer ring from bottom-left going right, then up, then left, then down
+    ['Start',16,82], ['Heel',28,82], ['Toes',40,82], ['Talus',52,82], ['Calcaneus',64,82], ['Achilles',76,82],
+    ['Tibia',76,70], ['Fibula',76,58], ['Patella',76,46], ['Quadriceps',76,34], ['Hamstrings',76,22], ['Femur',76,10],
+    ['Hip Joint',64,10], ['Pelvis',52,10], ['Bladder',40,10], ['Uterus',28,10], ['Colon',16,10],
+    ['Appendix',16,22], ['Rectum',16,34], ['Small Intestine',16,46], ['Gallbladder',16,58], ['Liver',16,70],
+
+    // middle ring
+    ['Pancreas',28,70], ['Spleen',40,70], ['Stomach',52,70], ['Esophagus',64,70],
+    ['Diaphragm',64,58], ['Aorta',64,46], ['Ribs',64,34], ['Sternum',64,22],
+    ['Lungs',52,22], ['Bronchi',40,22], ['Trachea',28,22],
+    ['Heart',28,34], ['Clavicle',28,46], ['Scapula',28,58],
+
+    // inner ring
+    ['Humerus',40,58], ['Radius',52,58],
+    ['Ulna',52,46], ['Thumb',52,34],
+    ['Eyes',40,34], ['Teeth',40,46],
+
+    // center finish path
+    ['Nasal Cavity',46,52], ['Temporal Bone',58,52], ['Frontal Bone',58,40], ['Cranium',46,40], ['Brain Stem',46,28], ['Brain',52,28]
   ];
 
-  const size = 7;
-  const coords = [];
-  let left = 0;
-  let right = size - 1;
-  let top = 0;
-  let bottom = size - 1;
-
-  while (left <= right && top <= bottom) {
-    for (let c = left; c <= right; c++) coords.push([bottom, c]);
-    for (let r = bottom - 1; r >= top; r--) coords.push([r, right]);
-    if (top < bottom) {
-      for (let c = right - 1; c >= left; c--) coords.push([top, c]);
-    }
-    if (left < right) {
-      for (let r = top + 1; r <= bottom - 1; r++) coords.push([r, left]);
-    }
-    left++;
-    right--;
-    top++;
-    bottom--;
-  }
-
-  const minX = 16;
-  const maxX = 84;
-  const minY = 12;
-  const maxY = 88;
-  const stepX = (maxX - minX) / (size - 1);
-  const stepY = (maxY - minY) / (size - 1);
-
-  return coords.slice(0, names.length).map(([r, c], i) => ({
+  return path.map(([name, x, y], i) => ({
     id: i,
-    name: names[i],
-    x: minX + c * stepX,
-    y: minY + r * stepY,
+    name,
+    x,
+    y,
     type:
       i === 0 ? 'start' :
-      i === names.length - 1 ? 'finish' :
+      i === path.length - 1 ? 'finish' :
       i % 11 === 0 ? 'quarantine' :
       i % 8 === 0 ? 'risk' :
       i % 6 === 0 ? 'chance' :
@@ -301,9 +281,9 @@ window.boardMarkup = function(){
       <div style="
         position:absolute;
         left:50%;
-        top:50%;
-        width:22%;
-        height:64%;
+        top:44%;
+        width:20%;
+        height:56%;
         transform:translate(-50%,-50%);
         z-index:1;
         display:flex;
