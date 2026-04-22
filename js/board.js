@@ -131,6 +131,16 @@ window.getTileEmoji = function(name){
   return map[name] || '🔬';
 };
 
+window.safePlayerToken = function(index){
+  if (typeof window.getPlayerToken === 'function') {
+    try {
+      return window.getPlayerToken(index);
+    } catch {}
+  }
+  const fallback = ['🩺','💉','💊','🩹','🌡️','🫀','🧠','❤️'];
+  return fallback[index % fallback.length];
+};
+
 window.getBoardSpaces = function(){
   const names = [
     'Start','Heel','Toes','Talus','Calcaneus','Achilles',
@@ -202,14 +212,16 @@ window.boardMarkup = function(){
           left:${space.x}%;
           top:${space.y}%;
           transform:translate(-50%,-50%);
-          width:82px;
-          height:82px;
+          width:${isFinish ? '90px' : '82px'};
+          height:${isFinish ? '90px' : '82px'};
           border-radius:22px;
           background:${window.getTileColor(space.type)};
           border:${isActive ? '3px solid #fff6ad' : '2px solid rgba(255,255,255,.16)'};
           box-shadow:${isActive
             ? '0 0 22px rgba(255,246,173,.95), 0 12px 24px rgba(0,0,0,.24)'
-            : '0 10px 18px rgba(0,0,0,.20)'};
+            : isFinish
+              ? '0 0 20px rgba(167,102,255,.6), 0 12px 24px rgba(0,0,0,.22)'
+              : '0 10px 18px rgba(0,0,0,.20)'};
           display:flex;
           flex-direction:column;
           align-items:center;
@@ -246,9 +258,9 @@ window.boardMarkup = function(){
         ` : ''}
 
         <div style="font-size:9px;font-weight:1000;opacity:.8;">#${space.id}</div>
-        <div style="font-size:18px;line-height:1;">${window.getTileEmoji(space.name)}</div>
+        <div style="font-size:${isFinish ? '20px' : '18px'};line-height:1;">${window.getTileEmoji(space.name)}</div>
         <div style="
-          font-size:10px;
+          font-size:${isFinish ? '11px' : '10px'};
           font-weight:1000;
           line-height:1.05;
           max-width:100%;
@@ -282,7 +294,7 @@ window.boardMarkup = function(){
               justify-content:center;
               box-shadow:0 4px 10px rgba(0,0,0,.26);
             ">
-              ${window.getPlayerToken(i)}
+              ${window.safePlayerToken(i)}
             </div>
           `).join('')}
         </div>
