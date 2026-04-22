@@ -1,3 +1,8 @@
+window.getPlayerToken = window.getPlayerToken || function(index){
+  const fallback = ['🩺','💉','💊','🩹','🌡️','🫀','🧠','❤️'];
+  return fallback[((index ?? 0) % fallback.length + fallback.length) % fallback.length];
+};
+
 window.createTrailAt = function(space){
   const shell = document.querySelector('.board-stage');
   if (!shell || !space) return;
@@ -129,16 +134,6 @@ window.getTileEmoji = function(name){
     Brain:'🧠'
   };
   return map[name] || '🔬';
-};
-
-window.safePlayerToken = function(index){
-  if (typeof window.getPlayerToken === 'function') {
-    try {
-      return window.getPlayerToken(index);
-    } catch {}
-  }
-  const fallback = ['🩺','💉','💊','🩹','🌡️','🫀','🧠','❤️'];
-  return fallback[index % fallback.length];
 };
 
 window.getBoardSpaces = function(){
@@ -294,7 +289,7 @@ window.boardMarkup = function(){
               justify-content:center;
               box-shadow:0 4px 10px rgba(0,0,0,.26);
             ">
-              ${window.safePlayerToken(i)}
+              ${window.getPlayerToken(i)}
             </div>
           `).join('')}
         </div>
