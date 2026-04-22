@@ -145,8 +145,6 @@ window.getBoardSpaces = function(){
     'Frontal Bone','Cranium','Brain Stem','Brain'
   ];
 
-  // True spiral order on a 7x7 grid.
-  // We leave the very center open for the anatomy image.
   const spiralCells = [
     [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],
     [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
@@ -194,6 +192,7 @@ window.boardMarkup = function(){
   const tilesHtml = spaces.map(space => {
     const onTile = players.filter(p => p.position === space.id);
     const isActive = currentPos === space.id;
+    const isFinish = space.type === 'finish';
 
     return `
       <div
@@ -231,6 +230,20 @@ window.boardMarkup = function(){
           border-radius:0 0 12px 12px;
           background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0));
         "></div>
+
+        ${isFinish ? `
+          <div style="
+            position:absolute;
+            top:6px;
+            right:6px;
+            font-size:8px;
+            font-weight:1000;
+            letter-spacing:.08em;
+            background:rgba(255,255,255,.18);
+            padding:3px 6px;
+            border-radius:999px;
+          ">FINISH</div>
+        ` : ''}
 
         <div style="font-size:9px;font-weight:1000;opacity:.8;">#${space.id}</div>
         <div style="font-size:18px;line-height:1;">${window.getTileEmoji(space.name)}</div>
