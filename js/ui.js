@@ -246,20 +246,36 @@ window.renderLiveFeedCard = function(){
 window.renderTriviaModal = function(){
   if (!state.trivia) return '';
 
-  const choices = Array.isArray(state.trivia.choices) ? state.trivia.choices : [];
+  const trivia = state.trivia || {};
+  const choices = Array.isArray(trivia.choices) ? trivia.choices : [];
+  const category = trivia.category || 'Anatomy Review';
 
   return `
     <div class="trivia-modal" id="triviaModal">
       <div class="trivia-card">
         <div class="trivia-top">
           <div>
-            <div style="font-size:14px;font-weight:1000;color:#6f675d;">🧠 Trivia Challenge</div>
-            <div class="trivia-helper">Your question — answer before time runs out.</div>
+            <div style="
+              display:inline-flex;
+              align-items:center;
+              gap:8px;
+              font-size:13px;
+              font-weight:1000;
+              color:#5f716f;
+              background:rgba(118,181,171,.14);
+              border:1px solid rgba(118,181,171,.24);
+              padding:6px 10px;
+              border-radius:999px;
+              margin-bottom:10px;
+            ">
+              🧠 ${window.escapeHtml(category)}
+            </div>
+            <div class="trivia-helper">Study challenge — answer before time runs out.</div>
           </div>
           <div class="pill-time">${window.escapeHtml(state.timer ?? 20)}s</div>
         </div>
 
-        <div class="trivia-q">${window.escapeHtml(state.trivia.q || '')}</div>
+        <div class="trivia-q">${window.escapeHtml(trivia.q || '')}</div>
 
         <div class="trivia-grid">
           ${choices.map(choice => `
