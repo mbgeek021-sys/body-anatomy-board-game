@@ -172,10 +172,11 @@
       [3, 4],[2, 4],[2, 3],[2, 2],[3, 2],
     ];
 
-    const minX = 18;
-    const maxX = 82;
-    const minY = 12;
-    const maxY = 88;
+    /* more spacing between tiles */
+    const minX = 14;
+    const maxX = 86;
+    const minY = 8;
+    const maxY = 92;
 
     const stepX = (maxX - minX) / 6;
     const stepY = (maxY - minY) / 6;
