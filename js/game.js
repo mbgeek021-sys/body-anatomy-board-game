@@ -47,17 +47,46 @@ window.advanceTurn = function(){
   state.currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
 };
 
-window.shouldTriggerTrivia = function(space){
-  if (!space) return false;
-  return ['chance','health','risk','safe'].includes(space.type);
-};
-
 window.pushSharedEvent = function(message, sound = null){
   if (typeof window.addRoomEvent === 'function') {
     window.addRoomEvent(message, sound, window.clientId);
   } else {
     state.lastCard = { text: message };
   }
+};
+
+window.normalizeTriviaQuestion = function(question){
+  if (!question) return null;
+
+  const category = question.category || 'Anatomy Review';
+  const explanation = question.explanation || '';
+  const q = question.q || question.question || '';
+  const answer = question.answer || '';
+  let choices = Array.isArray(question.choices) ? question.choices.slice() : [];
+
+  if (!choices.length && answer) {
+    choices = [answer];
+  }
+
+  return {
+    ...question,
+    q,
+    answer,
+    choices,
+    category,
+    explanation
+  };
+};
+
+window.pickTriviaQuestion = function(){
+  if (!Array.isArray(window.TRIVIA_QUESTIONS) || !window.TRIVIA_QUESTIONS.length) return null;
+  const raw = window.TRIVIA_QUESTIONS[Math.floor(Math.random() * window.TRIVIA_QUESTIONS.length)];
+  return window.normalizeTriviaQuestion(raw);
+};
+
+window.shouldTriggerTrivia = function(space){
+  if (!space) return false;
+  return ['chance','health','risk','safe'].includes(space.type);
 };
 
 window.applySpaceEffect = function(player, landedSpace){
@@ -209,11 +238,19 @@ window.handleRoll = async function(){
     const effectText = window.applySpaceEffect(player, landedSpace);
     window.pushSharedEvent(effectText, landedSpace.type === 'quarantine' ? 'skip' : 'move');
 
-    if (!state.winner && window.shouldTriggerTrivia(landedSpace) && Array.isArray(window.TRIVIA_QUESTIONS) && window.TRIVIA_QUESTIONS.length) {
-      state.trivia = window.TRIVIA_QUESTIONS[Math.floor(Math.random() * window.TRIVIA_QUESTIONS.length)];
-      state.timer = 20;
-      state.lastCard = { text: `${window.getPlayerName(player)} triggered trivia.` };
-      window.pushSharedEvent(`${window.getPlayerName(player)} triggered trivia.`, 'move');
+    if (!state.winner && window.shouldTriggerTrivia(landedSpace)) {
+      const trivia = window.pickTriviaQuestion();
+      if (trivia) {
+        state.trivia = trivia;
+        state.timer = 20;
+        state.lastCard = {
+          text: `${window.getPlayerName(player)} triggered ${trivia.category}.`
+        };
+        window.pushSharedEvent(`${window.getPlayerName(player)} triggered ${trivia.category}.`, 'move');
+      } else {
+        window.advanceTurn();
+        await window.skipMissedTurnsIfNeeded();
+      }
     } else if (!state.winner) {
       window.advanceTurn();
       await window.skipMissedTurnsIfNeeded();
@@ -260,21 +297,33 @@ window.submitTrivia = async function(choice){
     return;
   }
 
-  const correct = choice === state.trivia.answer;
+  const question = window.normalizeTriviaQuestion(state.trivia);
+  const correct = choice === question.answer;
+  const explanation = question.explanation ? ` ${question.explanation}` : '';
 
   if (correct) {
     current.score = (current.score || 0) + 2;
-    state.feedback = { ok: true, text: 'Correct! +2 points.' };
-    state.lastCard = { text: `${window.getPlayerName(current)} answered correctly and gained 2 points.` };
+    state.feedback = {
+      ok: true,
+      text: `Correct! +2 points.${explanation}`
+    };
+    state.lastCard = {
+      text: `${window.getPlayerName(current)} answered ${question.category} correctly.`
+    };
     window.playCorrectSound?.();
-    window.pushSharedEvent(`${window.getPlayerName(current)} answered correctly.`, 'correct');
+    window.pushSharedEvent(`${window.getPlayerName(current)} answered ${question.category} correctly.`, 'correct');
   } else {
     current.position = Math.max(0, (current.position || 0) - 2);
     current.score = Math.max(0, (current.score || 0) - 1);
-    state.feedback = { ok: false, text: 'Wrong! -1 point and move back 2.' };
-    state.lastCard = { text: `${window.getPlayerName(current)} answered incorrectly and moved back 2 spaces.` };
+    state.feedback = {
+      ok: false,
+      text: `Incorrect. The correct answer was ${question.answer}. -1 point and move back 2.${explanation}`
+    };
+    state.lastCard = {
+      text: `${window.getPlayerName(current)} missed a ${question.category} question and moved back 2 spaces.`
+    };
     window.playWrongSound?.();
-    window.pushSharedEvent(`${window.getPlayerName(current)} answered incorrectly.`, 'wrong');
+    window.pushSharedEvent(`${window.getPlayerName(current)} answered ${question.category} incorrectly.`, 'wrong');
   }
 
   state.players = window.ensurePlayersShape(state.players);
