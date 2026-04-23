@@ -1,6 +1,3 @@
-/* FULL REPLACE game.js */
-/* Adds premium card popup system + uses sound settings if available */
-
 (function () {
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
