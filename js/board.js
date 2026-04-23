@@ -189,13 +189,10 @@ window.boardMarkup = function(){
         "
       >
         <div class="premium-tile-topshine"></div>
-
         ${isFinish ? `<div class="finish-badge">FINISH</div>` : ''}
-
         <div class="premium-id">#${space.id}</div>
         <div class="premium-emoji">${window.getTileEmoji(space.name)}</div>
         <div class="premium-name">${window.escapeHtml(space.name)}</div>
-
         <div class="premium-token-row">
           ${onTile.map((p, i) => `
             <div class="premium-token">${window.getPlayerToken(i)}</div>
