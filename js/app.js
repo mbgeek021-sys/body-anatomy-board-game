@@ -91,7 +91,6 @@
         <div class="topbar-left">
           <div class="logo">🧠</div>
           <div>
-            <div class="domain">${window.escapeHtml(window.APP_CONFIG.SITE_DOMAIN)}</div>
             <div class="topbar-title">${window.escapeHtml(window.APP_CONFIG.GAME_TITLE)}</div>
             <div class="topbar-meta">
               ${window.escapeHtml(window.APP_CONFIG.SUBTITLE)}<br>
@@ -113,15 +112,39 @@
     `;
   };
 
+  window.renderLobbyPromoPlayers = function () {
+    const players = Array.isArray(state.players) ? state.players : [];
+    if (!players.length) {
+      return `
+        <div class="lobby-mini-players">
+          <div class="lobby-mini-player empty">Waiting for players...</div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="lobby-mini-players">
+        ${players.map((player, index) => `
+          <div class="lobby-mini-player">
+            <span class="lobby-mini-avatar">${window.getPlayerToken ? window.getPlayerToken(index) : "🩺"}</span>
+            <span>${window.escapeHtml(window.getPlayerName(player))}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  };
+
   window.renderLobbyScreen = function () {
     return `
       <div class="screen">
-        <div class="lobby-wrap">
-          <div class="lobby-left">
-            <div class="topbar-left">
+        <div class="lobby-wrap premium-lobby-v2">
+          <div class="lobby-left lobby-promo-card">
+            <div class="lobby-promo-glow"></div>
+
+            <div class="brand brand-lobby">
               <div class="logo">🧠</div>
               <div>
-                <div class="domain">${window.escapeHtml(window.APP_CONFIG.SITE_DOMAIN)}</div>
+                <div class="lobby-kicker">Anatomy Game Room</div>
                 <div class="topbar-title">${window.escapeHtml(window.APP_CONFIG.GAME_TITLE)}</div>
                 <div class="topbar-meta">
                   ${window.escapeHtml(window.APP_CONFIG.SUBTITLE)}<br>
@@ -130,28 +153,55 @@
               </div>
             </div>
 
-            <div class="code-box">
-              <div style="text-align:center;font-size:18px;font-weight:900;">
-                Join at ${window.escapeHtml(window.APP_CONFIG.SITE_DOMAIN)}
-              </div>
-              <div style="text-align:center;margin-top:8px;color:#586a78;font-size:15px;">
-                with your anatomy room code
-              </div>
-
-              <div class="code-big">
-                <div class="small">ANATOMY ROOM CODE</div>
-                <div class="code">${window.escapeHtml(state.roomCode || "----")}</div>
+            <div class="lobby-hero-copy">
+              <div class="lobby-hero-title">Ready to play, race, and answer anatomy trivia?</div>
+              <div class="lobby-hero-text">
+                Roll the dice, move through the spiral board, land on challenge spaces,
+                and reach the brain before everyone else.
               </div>
             </div>
+
+            <div class="lobby-feature-grid">
+              <div class="lobby-feature-card">
+                <div class="lobby-feature-icon">🎲</div>
+                <div class="lobby-feature-title">Roll & Move</div>
+                <div class="lobby-feature-text">Advance tile by tile across the spiral board.</div>
+              </div>
+
+              <div class="lobby-feature-card">
+                <div class="lobby-feature-icon">🧠</div>
+                <div class="lobby-feature-title">Trivia Rounds</div>
+                <div class="lobby-feature-text">Answer questions before the timer runs out.</div>
+              </div>
+
+              <div class="lobby-feature-card">
+                <div class="lobby-feature-icon">🛡️</div>
+                <div class="lobby-feature-title">Helpful Bonuses</div>
+                <div class="lobby-feature-text">Collect shields and good effects along the path.</div>
+              </div>
+
+              <div class="lobby-feature-card">
+                <div class="lobby-feature-icon">🏆</div>
+                <div class="lobby-feature-title">Race to Finish</div>
+                <div class="lobby-feature-text">Be first to reach the brain and win.</div>
+              </div>
+            </div>
+
+            <div class="lobby-room-spotlight">
+              <div class="lobby-room-label">ROOM CODE</div>
+              <div class="lobby-room-code">${window.escapeHtml(state.roomCode || "----")}</div>
+              <div class="lobby-room-note">Share this code so others can join your room.</div>
+            </div>
+
+            ${window.renderLobbyPromoPlayers()}
           </div>
 
-          <div class="lobby-right">
+          <div class="lobby-right lobby-join-card">
             <div>
               <div class="lobby-tag">LOBBY</div>
               <div class="lobby-title">Waiting for participants</div>
               <div class="lobby-copy">
-                Roll the dice, follow the spiral path, answer anatomy trivia,
-                and race to the brain for the win.
+                Enter your name, share the room code, and start when everyone is ready.
               </div>
 
               <div class="entry-card">
@@ -184,8 +234,9 @@
               </div>
             </div>
 
-            <div class="chip" style="display:inline-flex;width:max-content;">
-              ${window.escapeHtml(window.getConnectionText())}
+            <div class="lobby-status-row">
+              <div class="chip">${window.escapeHtml(window.getConnectionText())}</div>
+              <div class="chip">${window.getPlayerCountText()}</div>
             </div>
           </div>
         </div>
@@ -200,7 +251,7 @@
 
     return `
       <div class="hud-card">
-        <div class="hud-title">Current Study Turn</div>
+        <div class="hud-title">Current Turn</div>
         <div class="turn-hero">
           <div style="font-size:13px;opacity:.92;">${yourTurn ? "Your turn" : "Now moving"}</div>
           <h3 style="margin:6px 0 8px;">${window.escapeHtml(current ? window.getPlayerName(current) : "Player")}</h3>
@@ -213,7 +264,7 @@
   window.renderActionsCard = function () {
     return `
       <div class="hud-card">
-        <div class="hud-title">Study Actions</div>
+        <div class="hud-title">Game Actions</div>
         <div class="controls-grid">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <button id="rollBtn" class="btn btn-main" type="button" ${state.isRolling ? "disabled" : ""}>
@@ -236,7 +287,7 @@
 
     return `
       <div class="hud-card">
-        <div class="hud-title">Study Group</div>
+        <div class="hud-title">Players</div>
         <div class="players-strip">
           ${players.length ? players.map((player, index) => `
             <div class="player-card">
@@ -264,7 +315,7 @@
 
     return `
       <div class="hud-card" style="max-width:1440px;width:100%;margin:0 auto;">
-        <div class="hud-title">Study Log</div>
+        <div class="hud-title">Game Log</div>
         <div class="action-box" style="min-height:88px;max-height:180px;overflow:auto;">
           ${items.map(item => `
             <div style="
