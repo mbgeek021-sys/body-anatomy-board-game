@@ -1,7 +1,7 @@
 :root{
   --bg1:#08131d;
-  --bg2:#102638;
-  --bg3:#17364d;
+  --bg2:#0d2233;
+  --bg3:#15324a;
 
   --line:rgba(255,255,255,.10);
   --line2:rgba(255,255,255,.16);
@@ -53,6 +53,7 @@ body::before{
 #app{
   min-height:100vh;
   position:relative;
+  z-index:1;
 }
 
 .screen{
@@ -80,6 +81,7 @@ button,input{
   border:1px solid var(--line);
   box-shadow:var(--shadowLg);
   backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
 }
 
 /* TOP */
@@ -138,6 +140,7 @@ button,input{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
+  align-items:center;
 }
 
 .chip{
@@ -257,6 +260,7 @@ button,input{
   cursor:pointer;
   border-radius:18px;
   font-weight:900;
+  padding:0 18px;
 }
 
 .btn-main{
@@ -278,6 +282,7 @@ button,input{
 
 .board-panel{
   max-width:1440px;
+  width:100%;
   margin:0 auto;
   border-radius:34px;
   padding:14px;
@@ -309,13 +314,13 @@ button,input{
   pointer-events:none;
 }
 
-/* TILES */
-
 .tile-layer,
 .route-layer{
   position:absolute;
   inset:0;
 }
+
+/* TILES */
 
 .premium-tile-paper{
   position:absolute;
