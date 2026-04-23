@@ -54,9 +54,9 @@ html,body{
   font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color:var(--text);
   background:
-    radial-gradient(circle at 50% 12%, rgba(239,229,215,.11), transparent 20%),
-    radial-gradient(circle at 14% 10%, rgba(120,183,173,.08), transparent 16%),
-    radial-gradient(circle at 86% 12%, rgba(163,146,213,.07), transparent 16%),
+    radial-gradient(circle at 50% 14%, rgba(239,229,215,.10), transparent 18%),
+    radial-gradient(circle at 18% 10%, rgba(120,183,173,.06), transparent 14%),
+    radial-gradient(circle at 82% 14%, rgba(163,146,213,.05), transparent 14%),
     linear-gradient(180deg, #08131d 0%, #0f2435 42%, #17364d 100%);
   background-attachment:fixed;
 }
@@ -66,6 +66,7 @@ body{
   position:relative;
 }
 
+/* soft center glow */
 body::before{
   content:"";
   position:fixed;
@@ -73,10 +74,11 @@ body::before{
   pointer-events:none;
   z-index:0;
   background:
-    radial-gradient(circle at center, rgba(239,229,215,.09), transparent 34%),
-    linear-gradient(rgba(255,255,255,.012), rgba(255,255,255,.012));
+    radial-gradient(circle at center, rgba(239,229,215,.08), transparent 34%),
+    linear-gradient(rgba(255,255,255,.01), rgba(255,255,255,.01));
 }
 
+/* faint anatomy wallpaper */
 body::after{
   content:"";
   position:fixed;
@@ -84,9 +86,9 @@ body::after{
   pointer-events:none;
   z-index:0;
   background:
-    radial-gradient(circle at top left, rgba(255,255,255,.04), transparent 18%),
-    radial-gradient(circle at bottom right, rgba(255,255,255,.03), transparent 20%),
-    linear-gradient(rgba(7,16,24,.16), rgba(7,16,24,.16));
+    url('../anatomy vibes.png') center center / 1400px auto no-repeat;
+  opacity:.035;
+  filter:grayscale(1) contrast(.9) brightness(.8);
 }
 
 button,input{
@@ -116,47 +118,6 @@ button,input{
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.03),
     0 0 0 1px rgba(7,16,24,.16);
-}
-
-.screen::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index:0;
-  background:
-    url('../anatomy vibes.png') left top / 320px auto no-repeat,
-    url('../anatomy vibes.png') right bottom / 320px auto no-repeat;
-  opacity:.08;
-  filter:saturate(.8) sepia(.15);
-}
-
-/* Floating page accents */
-.page-accent-top-left,
-.page-accent-bottom-right{
-  position:fixed;
-  width:240px;
-  height:240px;
-  pointer-events:none;
-  z-index:0;
-  opacity:.18;
-  filter:blur(.2px);
-}
-
-.page-accent-top-left{
-  top:0;
-  left:0;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(236,229,215,.18), transparent 42%),
-    radial-gradient(circle at 40% 35%, rgba(120,183,173,.18), transparent 28%);
-}
-
-.page-accent-bottom-right{
-  right:0;
-  bottom:0;
-  background:
-    radial-gradient(circle at 65% 65%, rgba(236,229,215,.18), transparent 42%),
-    radial-gradient(circle at 60% 60%, rgba(163,146,213,.14), transparent 28%);
 }
 
 .glass{
