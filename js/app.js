@@ -15,6 +15,15 @@
     timer: 20,
     isRolling: false,
     audioMuted: false,
+
+    toast: "",
+    soundPanelOpen: false,
+    soundSettings: {
+      master: 80,
+      dice: 85,
+      trivia: 80,
+      effects: 80
+    }
   };
 
   window.APP_CONFIG = window.APP_CONFIG || {
@@ -24,7 +33,9 @@
     SCHOOL: "North-West College • West Covina, CA • Medical Insurance Biller",
     STORAGE_KEYS: {
       playerName: "anatomy-player-name",
-    },
+      audioMuted: "anatomy-audio-muted",
+      soundSettings: "anatomy-sound-settings"
+    }
   };
 
   window.escapeHtml = function (value) {
@@ -76,6 +87,77 @@
     return state.players[0] || null;
   };
 
+  window.showToast = function (message) {
+    state.toast = message;
+    window.safeRender();
+
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => {
+      state.toast = "";
+      window.safeRender();
+    }, 1700);
+  };
+
+  window.getShareText = function () {
+    return `Join my Body Anatomy Board Game room with code: ${state.roomCode || ""}`;
+  };
+
+  window.copyRoomCode = async function () {
+    const code = state.roomCode || "";
+    try {
+      if (navigator.clipboard && code) {
+        await navigator.clipboard.writeText(code);
+        window.showToast("Room code copied!");
+      } else {
+        window.showToast("Could not copy room code.");
+      }
+    } catch {
+      window.showToast("Could not copy room code.");
+    }
+  };
+
+  window.inviteToRoom = async function () {
+    const shareText = window.getShareText();
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Body Anatomy Board Game",
+          text: shareText
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareText);
+        window.showToast("Invite copied!");
+      } else {
+        window.showToast("Invite unavailable.");
+      }
+    } catch {}
+  };
+
+  window.applySoundSettings = function () {
+    if (typeof window.setAudioMuted === "function") {
+      window.setAudioMuted(state.audioMuted);
+    }
+
+    if (typeof window.setSoundLevels === "function") {
+      window.setSoundLevels({
+        master: state.soundSettings.master / 100,
+        dice: state.soundSettings.dice / 100,
+        trivia: state.soundSettings.trivia / 100,
+        effects: state.soundSettings.effects / 100
+      });
+    }
+  };
+
+  window.saveSoundSettings = function () {
+    try {
+      localStorage.setItem(window.APP_CONFIG.STORAGE_KEYS.audioMuted, state.audioMuted ? "1" : "0");
+      localStorage.setItem(
+        window.APP_CONFIG.STORAGE_KEYS.soundSettings,
+        JSON.stringify(state.soundSettings)
+      );
+    } catch {}
+  };
+
   window.renderFeedback = function () {
     if (!state.feedback || !state.feedback.text) return "";
     return `
@@ -103,9 +185,9 @@
           <div class="chip">Room: ${window.escapeHtml(state.roomCode || "----")}</div>
           <div class="chip">${window.getPlayerCountText()}</div>
           <div class="chip">${window.escapeHtml(window.getConnectionText())}</div>
-          <button class="btn btn-white" id="audioToggleBtn" type="button">
-            ${state.audioMuted ? "🔇 Audio" : "🔊 Audio"}
-          </button>
+          <button class="btn btn-white" id="copyCodeBtn" type="button">📋 Copy</button>
+          <button class="btn btn-blue" id="inviteBtn" type="button">🔗 Invite</button>
+          <button class="btn btn-white" id="soundPanelBtn" type="button">🎚 Sound</button>
           <button class="btn btn-white" id="backToLobbyBtn" type="button">Back</button>
         </div>
       </div>
@@ -191,6 +273,10 @@
               <div class="lobby-room-label">ROOM CODE</div>
               <div class="lobby-room-code">${window.escapeHtml(state.roomCode || "----")}</div>
               <div class="lobby-room-note">Share this code so others can join your room.</div>
+              <div class="lobby-room-actions">
+                <button id="copyCodeBtnLobby" class="btn btn-white" type="button">📋 Copy Code</button>
+                <button id="inviteBtnLobby" class="btn btn-blue" type="button">🔗 Invite</button>
+              </div>
             </div>
 
             ${window.renderLobbyPromoPlayers()}
@@ -236,10 +322,13 @@
 
             <div class="lobby-status-row">
               <div class="chip">${window.escapeHtml(window.getConnectionText())}</div>
-              <div class="chip">${window.getPlayerCountText()}</div>
+              <button class="btn btn-white" id="soundPanelBtnLobby" type="button">🎚 Sound</button>
             </div>
           </div>
         </div>
+
+        ${window.renderToast()}
+        ${window.renderSoundPanel()}
       </div>
     `;
   };
@@ -398,6 +487,74 @@
     `;
   };
 
+  window.renderToast = function () {
+    if (!state.toast) return "";
+    return `
+      <div class="app-toast">
+        ${window.escapeHtml(state.toast)}
+      </div>
+    `;
+  };
+
+  window.renderSoundPanel = function () {
+    if (!state.soundPanelOpen) return "";
+
+    return `
+      <div class="sound-panel-backdrop" id="soundPanelBackdrop">
+        <div class="sound-panel-card" role="dialog" aria-modal="true">
+          <div class="sound-panel-top">
+            <div>
+              <div class="sound-panel-kicker">AUDIO</div>
+              <div class="sound-panel-title">Sound Settings</div>
+            </div>
+            <button class="btn btn-white" id="closeSoundPanelBtn" type="button">Close</button>
+          </div>
+
+          <div class="sound-panel-grid">
+            <label class="sound-row">
+              <div class="sound-row-label">
+                <span>Master Volume</span>
+                <strong>${window.escapeHtml(state.soundSettings.master)}%</strong>
+              </div>
+              <input id="soundMaster" type="range" min="0" max="100" value="${window.escapeHtml(state.soundSettings.master)}">
+            </label>
+
+            <label class="sound-row">
+              <div class="sound-row-label">
+                <span>Dice Volume</span>
+                <strong>${window.escapeHtml(state.soundSettings.dice)}%</strong>
+              </div>
+              <input id="soundDice" type="range" min="0" max="100" value="${window.escapeHtml(state.soundSettings.dice)}">
+            </label>
+
+            <label class="sound-row">
+              <div class="sound-row-label">
+                <span>Trivia Volume</span>
+                <strong>${window.escapeHtml(state.soundSettings.trivia)}%</strong>
+              </div>
+              <input id="soundTrivia" type="range" min="0" max="100" value="${window.escapeHtml(state.soundSettings.trivia)}">
+            </label>
+
+            <label class="sound-row">
+              <div class="sound-row-label">
+                <span>Effects Volume</span>
+                <strong>${window.escapeHtml(state.soundSettings.effects)}%</strong>
+              </div>
+              <input id="soundEffects" type="range" min="0" max="100" value="${window.escapeHtml(state.soundSettings.effects)}">
+            </label>
+          </div>
+
+          <div class="sound-panel-actions">
+            <button class="btn ${state.audioMuted ? "btn-blue" : "btn-white"}" id="muteToggleBtn" type="button">
+              ${state.audioMuted ? "Unmute Audio" : "Mute Audio"}
+            </button>
+            <button class="btn btn-main" id="saveSoundBtn" type="button">Save Settings</button>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
   window.renderGameScreen = function () {
     let boardHtml = "";
 
@@ -436,6 +593,8 @@
 
         ${window.renderTriviaModal()}
         ${window.renderDiceOverlay()}
+        ${window.renderToast()}
+        ${window.renderSoundPanel()}
       </div>
     `;
   };
@@ -467,6 +626,9 @@
     const codeInput = document.getElementById("codeInput");
     const newCodeBtn = document.getElementById("newCodeBtn");
     const startRoomBtn = document.getElementById("startRoomBtn");
+    const copyCodeBtnLobby = document.getElementById("copyCodeBtnLobby");
+    const inviteBtnLobby = document.getElementById("inviteBtnLobby");
+    const soundPanelBtnLobby = document.getElementById("soundPanelBtnLobby");
 
     if (nameInput) {
       nameInput.addEventListener("input", (e) => {
@@ -503,13 +665,106 @@
         await window.enterRoom();
       });
     }
+
+    if (copyCodeBtnLobby) {
+      copyCodeBtnLobby.addEventListener("click", async () => {
+        await window.copyRoomCode();
+      });
+    }
+
+    if (inviteBtnLobby) {
+      inviteBtnLobby.addEventListener("click", async () => {
+        await window.inviteToRoom();
+      });
+    }
+
+    if (soundPanelBtnLobby) {
+      soundPanelBtnLobby.addEventListener("click", () => {
+        state.soundPanelOpen = true;
+        window.safeRender();
+      });
+    }
+
+    window.attachSoundPanelEvents();
+  };
+
+  window.attachSoundPanelEvents = function () {
+    const backdrop = document.getElementById("soundPanelBackdrop");
+    const closeBtn = document.getElementById("closeSoundPanelBtn");
+    const muteToggleBtn = document.getElementById("muteToggleBtn");
+    const saveSoundBtn = document.getElementById("saveSoundBtn");
+
+    const master = document.getElementById("soundMaster");
+    const dice = document.getElementById("soundDice");
+    const trivia = document.getElementById("soundTrivia");
+    const effects = document.getElementById("soundEffects");
+
+    if (backdrop) {
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) {
+          state.soundPanelOpen = false;
+          window.safeRender();
+        }
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        state.soundPanelOpen = false;
+        window.safeRender();
+      });
+    }
+
+    if (muteToggleBtn) {
+      muteToggleBtn.addEventListener("click", () => {
+        state.audioMuted = !state.audioMuted;
+        window.applySoundSettings();
+        window.saveSoundSettings();
+        window.safeRender();
+      });
+    }
+
+    if (master) {
+      master.addEventListener("input", (e) => {
+        state.soundSettings.master = Number(e.target.value || 0);
+      });
+    }
+
+    if (dice) {
+      dice.addEventListener("input", (e) => {
+        state.soundSettings.dice = Number(e.target.value || 0);
+      });
+    }
+
+    if (trivia) {
+      trivia.addEventListener("input", (e) => {
+        state.soundSettings.trivia = Number(e.target.value || 0);
+      });
+    }
+
+    if (effects) {
+      effects.addEventListener("input", (e) => {
+        state.soundSettings.effects = Number(e.target.value || 0);
+      });
+    }
+
+    if (saveSoundBtn) {
+      saveSoundBtn.addEventListener("click", () => {
+        window.applySoundSettings();
+        window.saveSoundSettings();
+        state.soundPanelOpen = false;
+        window.showToast("Sound settings saved!");
+      });
+    }
   };
 
   window.attachGameEvents = function () {
     const rollBtn = document.getElementById("rollBtn");
     const shareBtn = document.getElementById("shareBtn");
     const backBtn = document.getElementById("backToLobbyBtn");
-    const audioBtn = document.getElementById("audioToggleBtn");
+    const copyCodeBtn = document.getElementById("copyCodeBtn");
+    const inviteBtn = document.getElementById("inviteBtn");
+    const soundPanelBtn = document.getElementById("soundPanelBtn");
 
     if (rollBtn) {
       rollBtn.addEventListener("click", async () => {
@@ -524,16 +779,26 @@
 
     if (shareBtn) {
       shareBtn.addEventListener("click", async () => {
-        const shareText = `Join my anatomy board game room: ${state.roomCode || ""}`;
-        try {
-          if (navigator.share) {
-            await navigator.share({ title: "Body Anatomy Board Game", text: shareText });
-          } else if (navigator.clipboard) {
-            await navigator.clipboard.writeText(shareText);
-            state.lastCard = { text: "Room link copied." };
-            window.safeRender();
-          }
-        } catch {}
+        await window.inviteToRoom();
+      });
+    }
+
+    if (copyCodeBtn) {
+      copyCodeBtn.addEventListener("click", async () => {
+        await window.copyRoomCode();
+      });
+    }
+
+    if (inviteBtn) {
+      inviteBtn.addEventListener("click", async () => {
+        await window.inviteToRoom();
+      });
+    }
+
+    if (soundPanelBtn) {
+      soundPanelBtn.addEventListener("click", () => {
+        state.soundPanelOpen = true;
+        window.safeRender();
       });
     }
 
@@ -542,16 +807,7 @@
         state.entered = false;
         state.trivia = null;
         state.isRolling = false;
-        window.safeRender();
-      });
-    }
-
-    if (audioBtn) {
-      audioBtn.addEventListener("click", () => {
-        state.audioMuted = !state.audioMuted;
-        if (typeof window.setAudioMuted === "function") {
-          window.setAudioMuted(state.audioMuted);
-        }
+        state.soundPanelOpen = false;
         window.safeRender();
       });
     }
@@ -564,6 +820,8 @@
         }
       });
     });
+
+    window.attachSoundPanelEvents();
   };
 
   window.attachUiEvents = function () {
@@ -608,9 +866,26 @@
       if (savedName) state.lobbyName = savedName;
     } catch {}
 
+    try {
+      const muted = localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.audioMuted);
+      state.audioMuted = muted === "1";
+    } catch {}
+
+    try {
+      const savedSettings = localStorage.getItem(window.APP_CONFIG.STORAGE_KEYS.soundSettings);
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        state.soundSettings = {
+          ...state.soundSettings,
+          ...parsed
+        };
+      }
+    } catch {}
+
     if (!state.roomCode) state.roomCode = window.makeRoomCode();
     if (!state.joinCode) state.joinCode = state.roomCode;
 
+    window.applySoundSettings();
     window.safeRender();
   });
 })();
