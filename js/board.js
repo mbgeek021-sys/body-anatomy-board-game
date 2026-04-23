@@ -13,7 +13,7 @@ window.createTrailAt = function(space){
   dot.style.top = `${space.y}%`;
   shell.appendChild(dot);
 
-  setTimeout(() => dot.remove(), 380);
+  setTimeout(() => dot.remove(), 320);
 };
 
 window.showDiceRoll = async function(roll){
@@ -46,19 +46,19 @@ window.pulseLanding = function(id){
   tile.classList.remove('soft-pulse');
   void tile.offsetWidth;
   tile.classList.add('soft-pulse');
-  setTimeout(() => tile.classList.remove('soft-pulse'), 350);
+  setTimeout(() => tile.classList.remove('soft-pulse'), 420);
 };
 
-window.getTileColor = function(type){
+window.getTileAccent = function(type){
   switch(type){
-    case 'start': return 'linear-gradient(135deg,#56b98b,#3d9c72)';
-    case 'finish': return 'linear-gradient(135deg,#9d8ae0,#7f6ec6)';
-    case 'safe': return 'linear-gradient(135deg,#67b8b1,#4aa19a)';
-    case 'health': return 'linear-gradient(135deg,#7ba8e5,#5f8fd1)';
-    case 'risk': return 'linear-gradient(135deg,#cf8da0,#b9778a)';
-    case 'chance': return 'linear-gradient(135deg,#a18fdc,#8474c8)';
-    case 'quarantine': return 'linear-gradient(135deg,#d6ac6c,#bb9153)';
-    default: return 'linear-gradient(135deg,#344b63,#26384b)';
+    case 'start': return '#63b88e';
+    case 'finish': return '#9e8bd8';
+    case 'safe': return '#74b7b0';
+    case 'health': return '#86a7d8';
+    case 'risk': return '#cb93a0';
+    case 'chance': return '#a595d8';
+    case 'quarantine': return '#d0aa73';
+    default: return '#314b66';
   }
 };
 
@@ -180,22 +180,25 @@ window.boardMarkup = function(){
 
     return `
       <div
-        class="premium-tile ${isActive ? 'active-space' : ''} ${isFinish ? 'finish-space' : ''}"
+        class="premium-tile premium-tile-paper ${isActive ? 'active-space' : ''} ${isFinish ? 'finish-space' : ''}"
         data-space-id="${space.id}"
-        style="
-          left:${space.x}%;
-          top:${space.y}%;
-          background:${window.getTileColor(space.type)};
-        "
+        style="left:${space.x}%; top:${space.y}%;"
       >
-        <div class="premium-tile-topshine"></div>
+        <div class="paper-tile-accent" style="background:${window.getTileAccent(space.type)};"></div>
+
         ${isFinish ? `<div class="finish-badge">FINISH</div>` : ''}
-        <div class="premium-id">#${space.id}</div>
-        <div class="premium-emoji">${window.getTileEmoji(space.name)}</div>
-        <div class="premium-name">${window.escapeHtml(space.name)}</div>
-        <div class="premium-token-row">
+
+        <div class="paper-tile-id">#${space.id}</div>
+
+        <div class="paper-tile-icon-wrap">
+          <div class="paper-tile-icon">${window.getTileEmoji(space.name)}</div>
+        </div>
+
+        <div class="paper-tile-name">${window.escapeHtml(space.name)}</div>
+
+        <div class="paper-token-row">
           ${onTile.map((p, i) => `
-            <div class="premium-token">${window.getPlayerToken(i)}</div>
+            <div class="paper-token">${window.getPlayerToken(i)}</div>
           `).join('')}
         </div>
       </div>
