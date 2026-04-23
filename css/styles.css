@@ -15,7 +15,6 @@
 
   --panel:#13273bdf;
   --panel-2:#183147f2;
-  --panel-soft:rgba(255,255,255,.05);
 
   --line:rgba(220,233,236,.12);
   --line-2:rgba(220,233,236,.18);
@@ -42,11 +41,6 @@
   --shadow-lg:0 20px 44px rgba(0,0,0,.24);
   --shadow-md:0 12px 26px rgba(0,0,0,.18);
   --shadow-sm:0 6px 14px rgba(0,0,0,.12);
-
-  --radius-xl:30px;
-  --radius-lg:24px;
-  --radius-md:18px;
-  --radius-sm:14px;
 }
 
 *{
@@ -60,7 +54,7 @@ html,body{
   font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color:var(--text);
   background:
-    radial-gradient(circle at 50% 18%, rgba(239,229,215,.10), transparent 18%),
+    radial-gradient(circle at 50% 12%, rgba(239,229,215,.11), transparent 20%),
     radial-gradient(circle at 14% 10%, rgba(120,183,173,.08), transparent 16%),
     radial-gradient(circle at 86% 12%, rgba(163,146,213,.07), transparent 16%),
     linear-gradient(180deg, #08131d 0%, #0f2435 42%, #17364d 100%);
@@ -79,7 +73,7 @@ body::before{
   pointer-events:none;
   z-index:0;
   background:
-    radial-gradient(circle at center, rgba(239,229,215,.07), transparent 34%),
+    radial-gradient(circle at center, rgba(239,229,215,.09), transparent 34%),
     linear-gradient(rgba(255,255,255,.012), rgba(255,255,255,.012));
 }
 
@@ -115,13 +109,54 @@ button,input{
 .screen::before{
   content:"";
   position:absolute;
-  inset:10px;
-  border-radius:34px;
+  inset:8px;
+  border-radius:38px;
   pointer-events:none;
-  border:1px solid rgba(236,229,215,.06);
+  border:1px solid rgba(236,229,215,.08);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.03),
     0 0 0 1px rgba(7,16,24,.16);
+}
+
+.screen::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background:
+    url('../anatomy vibes.png') left top / 320px auto no-repeat,
+    url('../anatomy vibes.png') right bottom / 320px auto no-repeat;
+  opacity:.08;
+  filter:saturate(.8) sepia(.15);
+}
+
+/* Floating page accents */
+.page-accent-top-left,
+.page-accent-bottom-right{
+  position:fixed;
+  width:240px;
+  height:240px;
+  pointer-events:none;
+  z-index:0;
+  opacity:.18;
+  filter:blur(.2px);
+}
+
+.page-accent-top-left{
+  top:0;
+  left:0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(236,229,215,.18), transparent 42%),
+    radial-gradient(circle at 40% 35%, rgba(120,183,173,.18), transparent 28%);
+}
+
+.page-accent-bottom-right{
+  right:0;
+  bottom:0;
+  background:
+    radial-gradient(circle at 65% 65%, rgba(236,229,215,.18), transparent 42%),
+    radial-gradient(circle at 60% 60%, rgba(163,146,213,.14), transparent 28%);
 }
 
 .glass{
@@ -186,6 +221,8 @@ button,input{
   grid-template-columns:1.08fr .92fr;
   gap:18px;
   align-items:stretch;
+  position:relative;
+  z-index:1;
 }
 
 .lobby-left,
@@ -412,6 +449,8 @@ button,input{
 .game-layout{
   display:grid;
   gap:14px;
+  position:relative;
+  z-index:1;
 }
 
 .topbar{
@@ -659,7 +698,7 @@ button,input{
   border-radius:26px;
   padding:18px;
   background:
-    linear-gradient(180deg, rgba(19,39,58,.90), rgba(11,23,34,.96));
+    linear-gradient(180deg, rgba(24,44,63,.90), rgba(12,24,35,.96));
   border:1px solid var(--line);
   box-shadow:var(--shadow-md);
   position:relative;
