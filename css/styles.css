@@ -1304,3 +1304,29 @@ button,input{
     transform:translateY(0) scale(1);
   }
 }
+
+/* PREMIUM WINNER SCREEN POLISH */
+
+#winnerOverlay{
+  animation:winnerFadeIn .22s ease;
+}
+
+#winnerOverlay > div{
+  animation:winnerPopIn .28s ease;
+}
+
+@keyframes winnerFadeIn{
+  from{ opacity:0; }
+  to{ opacity:1; }
+}
+
+@keyframes winnerPopIn{
+  from{
+    opacity:0;
+    transform:translateY(22px) scale(.95);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
