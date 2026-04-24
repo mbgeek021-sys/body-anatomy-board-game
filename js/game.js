@@ -2,36 +2,16 @@
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const TRIVIA = [
-    {
-      category: "Bones",
-      q: "How many bones are in the adult human body?",
-      choices: ["206", "180", "250", "300"],
-      a: "206"
-    },
-    {
-      category: "Heart",
-      q: "How many chambers does the heart have?",
-      choices: ["2", "3", "4", "5"],
-      a: "4"
-    },
-    {
-      category: "Brain",
-      q: "Which organ controls the nervous system?",
-      choices: ["Liver", "Brain", "Lung", "Kidney"],
-      a: "Brain"
-    },
-    {
-      category: "Muscles",
-      q: "Which muscle helps breathing?",
-      choices: ["Diaphragm", "Biceps", "Quadriceps", "Deltoid"],
-      a: "Diaphragm"
-    },
-    {
-      category: "Blood",
-      q: "Red blood cells carry what?",
-      choices: ["Oxygen", "Sugar", "Water", "Fat"],
-      a: "Oxygen"
-    }
+    { category: "Bones", q: "How many bones are in the adult human body?", choices: ["206", "180", "250", "300"], a: "206" },
+    { category: "Heart", q: "How many chambers does the heart have?", choices: ["2", "3", "4", "5"], a: "4" },
+    { category: "Brain", q: "Which organ controls the nervous system?", choices: ["Liver", "Brain", "Lung", "Kidney"], a: "Brain" },
+    { category: "Muscles", q: "Which muscle helps breathing?", choices: ["Diaphragm", "Biceps", "Quadriceps", "Deltoid"], a: "Diaphragm" },
+    { category: "Blood", q: "Red blood cells carry what?", choices: ["Oxygen", "Sugar", "Water", "Fat"], a: "Oxygen" },
+    { category: "Digestive", q: "Which organ stores bile?", choices: ["Gallbladder", "Heart", "Lungs", "Brain"], a: "Gallbladder" },
+    { category: "Respiratory", q: "Which organ helps exchange oxygen and carbon dioxide?", choices: ["Lungs", "Stomach", "Spleen", "Pancreas"], a: "Lungs" },
+    { category: "Skeletal", q: "The femur is located in the:", choices: ["Thigh", "Forearm", "Chest", "Skull"], a: "Thigh" },
+    { category: "Urinary", q: "Which organ stores urine?", choices: ["Bladder", "Liver", "Colon", "Appendix"], a: "Bladder" },
+    { category: "Head", q: "Which bone protects the brain?", choices: ["Cranium", "Femur", "Tibia", "Radius"], a: "Cranium" }
   ];
 
   function getPlayers() {
@@ -88,6 +68,12 @@
     const spaces = getBoardSpacesSafe();
     const tile = spaces[position];
     return tile ? tile.type : "normal";
+  }
+
+  function sound(fnName) {
+    try {
+      if (typeof window[fnName] === "function") window[fnName]();
+    } catch {}
   }
 
   async function movePlayer(player, steps) {
@@ -161,6 +147,10 @@
     window.__triviaTimer = setInterval(async function () {
       window.state.timer -= 1;
 
+      if (window.state.timer <= 5 && window.state.timer > 0) {
+        sound("playTriviaTickSound");
+      }
+
       if (window.state.timer <= 0) {
         clearInterval(window.__triviaTimer);
         window.state.trivia = null;
@@ -170,6 +160,7 @@
         };
         window.state.lastCard = { text: `${player.name} ran out of time.` };
         addLog(`${player.name} ran out of time.`);
+        sound("playWrongSound");
         rerender();
         await wait(250);
         await nextTurn();
@@ -201,6 +192,7 @@
       };
       window.state.lastCard = { text: `${player.name} answered correctly.` };
       addLog(`${player.name} answered correctly.`);
+      sound("playCorrectSound");
       window.state.trivia = null;
       rerender();
       await wait(250);
@@ -212,6 +204,7 @@
       };
       window.state.lastCard = { text: `${player.name} answered incorrectly.` };
       addLog(`${player.name} answered incorrectly.`);
+      sound("playWrongSound");
       window.state.trivia = null;
       rerender();
     }
@@ -228,6 +221,7 @@
       };
       window.state.lastCard = { text: `${player.name} reached the Brain and wins!` };
       addLog(`${player.name} wins the game!`);
+      sound("playWinSound");
       rerender();
       return;
     }
@@ -238,10 +232,11 @@
       player.score = (player.score || 0) + 1;
       window.state.feedback = {
         ok: true,
-        text: `${player.name} landed on a helpful tile. +1 point.`
+        text: `${player.name} landed on a health tile. +1 point.`
       };
       window.state.lastCard = { text: `${player.name} gained 1 point.` };
       addLog(`${player.name} gained 1 point.`);
+      sound("playCardSound");
       rerender();
       await wait(250);
       await nextTurn();
@@ -256,6 +251,7 @@
       };
       window.state.lastCard = { text: `${player.name} lost 1 point.` };
       addLog(`${player.name} lost 1 point.`);
+      sound("playWrongSound");
       rerender();
       await wait(250);
       await nextTurn();
@@ -269,6 +265,7 @@
       };
       window.state.lastCard = { text: `${player.name} moves forward 2.` };
       addLog(`${player.name} moves forward 2.`);
+      sound("playCardSound");
       rerender();
       await wait(250);
       await movePlayer(player, 2);
@@ -285,6 +282,7 @@
       };
       window.state.lastCard = { text: `${player.name} will miss next turn.` };
       addLog(`${player.name} will miss next turn.`);
+      sound("playMissTurnSound");
       rerender();
       await wait(250);
       await nextTurn();
@@ -306,6 +304,7 @@
       };
       window.state.lastCard = { text: `${player.name} missed a turn.` };
       addLog(`${player.name} missed a turn.`);
+      sound("playMissTurnSound");
       rerender();
       await wait(300);
       await nextTurn();
@@ -316,6 +315,8 @@
     rerender();
 
     const roll = Math.floor(Math.random() * 6) + 1;
+
+    sound("playDiceSound");
 
     if (typeof window.showDiceRoll === "function") {
       await window.showDiceRoll(roll);
@@ -332,9 +333,5 @@
 
     await wait(150);
     await resolveLanding(player);
-  };
-
-  window.setSoundLevels = function () {
-    /* safe no-op */
   };
 })();
