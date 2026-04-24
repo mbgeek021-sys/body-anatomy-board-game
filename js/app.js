@@ -17,6 +17,8 @@
     audioMuted: false,
     toast: "",
     soundPanelOpen: false,
+    invitePopupOpen: false,
+    inviteLink: "",
     soundSettings: {
       master: 80,
       dice: 85,
@@ -92,10 +94,12 @@
 
   window.copyInviteLink = async function () {
     const link = window.getRoomLink();
+    state.inviteLink = link;
 
     try {
       await navigator.clipboard.writeText(link);
-      window.showToast("Invite link copied!");
+      state.invitePopupOpen = true;
+      window.safeRender();
     } catch {
       window.prompt("Copy this invite link:", link);
     }
@@ -137,6 +141,34 @@
   window.renderToast = function () {
     if (!state.toast) return "";
     return `<div class="app-toast">${window.escapeHtml(state.toast)}</div>`;
+  };
+
+  window.renderInvitePopup = function () {
+    if (!state.invitePopupOpen) return "";
+
+    return `
+      <div class="invite-popup-backdrop" id="invitePopupBackdrop">
+        <div class="invite-popup-card">
+          <div class="invite-popup-icon">🔗</div>
+          <div class="invite-popup-title">Invite Link Copied!</div>
+          <div class="invite-popup-text">
+            Send this link to your classmates so they join the same room.
+          </div>
+
+          <div class="invite-popup-code">
+            Room ${window.escapeHtml(state.roomCode || "----")}
+          </div>
+
+          <div class="invite-popup-link">
+            ${window.escapeHtml(state.inviteLink || "")}
+          </div>
+
+          <button class="btn btn-main" id="closeInvitePopupBtn" type="button">
+            Done
+          </button>
+        </div>
+      </div>
+    `;
   };
 
   window.renderFeedback = function () {
@@ -275,6 +307,7 @@
         </div>
 
         ${window.renderToast()}
+        ${window.renderInvitePopup()}
         ${window.renderSoundPanel()}
       </div>
     `;
@@ -470,6 +503,7 @@
         ${window.renderTriviaModal()}
         ${window.renderDiceOverlay()}
         ${window.renderToast()}
+        ${window.renderInvitePopup()}
         ${window.renderSoundPanel()}
       </div>
     `;
@@ -493,6 +527,20 @@
     state.lastCard = { text: `${name} joined the room.` };
     state.eventLog = [{ id: Date.now(), message: `${name} joined the room.` }];
     window.safeRender();
+  };
+
+  window.attachInvitePopupEvents = function () {
+    document.getElementById("closeInvitePopupBtn")?.addEventListener("click", () => {
+      state.invitePopupOpen = false;
+      window.safeRender();
+    });
+
+    document.getElementById("invitePopupBackdrop")?.addEventListener("click", (e) => {
+      if (e.target.id === "invitePopupBackdrop") {
+        state.invitePopupOpen = false;
+        window.safeRender();
+      }
+    });
   };
 
   window.attachSoundPanelEvents = function () {
@@ -562,6 +610,7 @@
     });
 
     window.attachSoundPanelEvents();
+    window.attachInvitePopupEvents();
   };
 
   window.attachGameEvents = function () {
@@ -583,6 +632,7 @@
       state.trivia = null;
       state.isRolling = false;
       state.soundPanelOpen = false;
+      state.invitePopupOpen = false;
       window.safeRender();
     });
 
@@ -595,6 +645,7 @@
     });
 
     window.attachSoundPanelEvents();
+    window.attachInvitePopupEvents();
   };
 
   window.attachUiEvents = function () {
