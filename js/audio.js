@@ -1,115 +1,123 @@
-window.audioEnabled = true;
-window.audioStarted = false;
-window.audioCtx = null;
-window.masterGain = null;
+(function () {
+  window.audioState = window.audioState || {
+    muted: false,
+    levels: {
+      master: 0.8,
+      dice: 0.85,
+      trivia: 0.8,
+      effects: 0.8
+    }
+  };
 
-window.ensureAudio = function () {
-  if (window.audioCtx) return window.audioCtx;
+  function getAudioContext() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
 
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return null;
+      if (!window.__anatomyAudioCtx) {
+        window.__anatomyAudioCtx = new AudioCtx();
+      }
 
-  window.audioCtx = new AC();
+      if (window.__anatomyAudioCtx.state === "suspended") {
+        window.__anatomyAudioCtx.resume();
+      }
 
-  window.masterGain = window.audioCtx.createGain();
-  window.masterGain.gain.value = 0.9;
-  window.masterGain.connect(window.audioCtx.destination);
-
-  return window.audioCtx;
-};
-
-window.resumeAudio = async function () {
-  const ctx = window.ensureAudio();
-  if (!ctx) return;
-
-  if (ctx.state === "suspended") {
-    try { await ctx.resume(); } catch {}
+      return window.__anatomyAudioCtx;
+    } catch {
+      return null;
+    }
   }
-};
 
-window.playTone = async function (
-  freq = 440,
-  duration = 0.18,
-  type = "sine",
-  volume = 0.18,
-  when = 0
-) {
-  if (!window.audioEnabled) return;
-
-  const ctx = window.ensureAudio();
-  if (!ctx) return;
-
-  await window.resumeAudio();
-
-  const now = ctx.currentTime + when;
-
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, now);
-
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.linearRampToValueAtTime(volume, now + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-  osc.connect(gain);
-  gain.connect(window.masterGain);
-
-  osc.start(now);
-  osc.stop(now + duration + 0.05);
-};
-
-/* ---------- NO BACKGROUND AUDIO ---------- */
-
-window.startAmbient = async function(){};
-window.stopAmbient = function(){};
-
-/* ---------- GAME SOUNDS ---------- */
-
-window.playClick = function () {
-  window.playTone(650, 0.06, "square", 0.14);
-};
-
-window.playDiceSound = async function () {
-  for (let i = 0; i < 7; i++) {
-    window.playTone(230 + i * 50, 0.06, "triangle", 0.18, i * 0.05);
+  function getLevel(type) {
+    const master = window.audioState.levels.master ?? 0.8;
+    const specific = window.audioState.levels[type] ?? 0.8;
+    return master * specific;
   }
-};
 
-window.playMoveSound = async function () {
-  window.playTone(420, 0.08, "triangle", 0.12);
-};
+  function tone(freq, duration, type, volume) {
+    if (window.audioState.muted) return;
 
-window.playCorrectSound = async function () {
-  window.playTone(523, 0.10, "triangle", 0.20, 0);
-  window.playTone(659, 0.12, "triangle", 0.20, 0.10);
-  window.playTone(783, 0.18, "triangle", 0.22, 0.22);
-};
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
-window.playWrongSound = async function () {
-  window.playTone(280, 0.12, "sawtooth", 0.20, 0);
-  window.playTone(220, 0.16, "sawtooth", 0.20, 0.10);
-};
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-window.playMissTurnSound = async function () {
-  window.playTone(260, 0.10, "square", 0.18, 0);
-  window.playTone(210, 0.14, "square", 0.18, 0.10);
-};
+      osc.type = "sine";
+      osc.frequency.value = freq;
 
-window.playGameStartSound = async function () {
-  window.playTone(392, 0.12, "triangle", 0.20, 0);
-  window.playTone(523, 0.14, "triangle", 0.20, 0.10);
-  window.playTone(659, 0.22, "triangle", 0.22, 0.22);
-};
+      const finalVolume = Math.max(0.0001, volume * getLevel(type));
 
-window.startGameAudio = async function () {
-  if (window.audioStarted) return;
+      gain.gain.setValueAtTime(finalVolume, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + duration / 1000
+      );
 
-  window.audioStarted = true;
-  await window.resumeAudio();
-};
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-window.toggleAudio = async function () {
-  window.audioEnabled = !window.audioEnabled;
-};
+      osc.start();
+      osc.stop(ctx.currentTime + duration / 1000);
+    } catch {}
+  }
+
+  window.setAudioMuted = function (muted) {
+    window.audioState.muted = !!muted;
+  };
+
+  window.setSoundLevels = function (levels) {
+    window.audioState.levels = {
+      ...window.audioState.levels,
+      ...levels
+    };
+  };
+
+  window.playDiceSound = function () {
+    tone(420, 70, "dice", 0.035);
+    setTimeout(() => tone(520, 75, "dice", 0.035), 75);
+    setTimeout(() => tone(640, 90, "dice", 0.03), 155);
+  };
+
+  window.playCorrectSound = function () {
+    tone(620, 110, "effects", 0.04);
+    setTimeout(() => tone(780, 120, "effects", 0.035), 115);
+    setTimeout(() => tone(940, 130, "effects", 0.025), 235);
+  };
+
+  window.playWrongSound = function () {
+    tone(260, 180, "effects", 0.04);
+    setTimeout(() => tone(190, 180, "effects", 0.03), 120);
+  };
+
+  window.playTriviaTickSound = function () {
+    tone(520, 50, "trivia", 0.018);
+  };
+
+  window.playStartSound = function () {
+    tone(440, 100, "effects", 0.032);
+    setTimeout(() => tone(660, 120, "effects", 0.034), 100);
+  };
+
+  window.playMissTurnSound = function () {
+    tone(220, 180, "effects", 0.035);
+    setTimeout(() => tone(180, 200, "effects", 0.025), 130);
+  };
+
+  window.playCardSound = function () {
+    tone(560, 80, "effects", 0.03);
+    setTimeout(() => tone(720, 100, "effects", 0.028), 90);
+  };
+
+  window.playWinSound = function () {
+    tone(520, 100, "effects", 0.04);
+    setTimeout(() => tone(680, 100, "effects", 0.04), 110);
+    setTimeout(() => tone(840, 140, "effects", 0.04), 220);
+    setTimeout(() => tone(1040, 180, "effects", 0.035), 360);
+  };
+
+  document.addEventListener("click", () => {
+    getAudioContext();
+  }, { once: true });
+})();
