@@ -1,320 +1,262 @@
 (function () {
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
   const TRIVIA = [
-    { category: "Bones", q: "How many bones are in the adult human body?", choices: ["206", "180", "250", "300"], a: "206" },
-    { category: "Heart", q: "How many chambers does the heart have?", choices: ["2", "3", "4", "5"], a: "4" },
-    { category: "Brain", q: "Which organ controls the nervous system?", choices: ["Liver", "Brain", "Lung", "Kidney"], a: "Brain" },
-    { category: "Muscles", q: "Which muscle helps breathing?", choices: ["Diaphragm", "Biceps", "Quadriceps", "Deltoid"], a: "Diaphragm" }
+    { q:"How many bones are in an adult body?", c:["206","150","250","180"], a:"206" },
+    { q:"Which organ pumps blood?", c:["Brain","Heart","Liver","Lung"], a:"Heart" },
+    { q:"Which organ stores urine?", c:["Bladder","Kidney","Colon","Liver"], a:"Bladder" },
+    { q:"Largest organ of the body?", c:["Skin","Heart","Brain","Liver"], a:"Skin" }
   ];
 
-  function getPlayers() {
-    if (!Array.isArray(window.state.players)) window.state.players = [];
-    return window.state.players;
+  const CARD_SETS = {
+    health: [
+      { title:"HEALTH BOOST", icon:"🩺", text:"Gain +1 point.", good:true, score:1 },
+      { title:"HAND WASHED", icon:"🧼", text:"Move forward 2 spaces.", good:true, move:2 },
+      { title:"IMMUNITY", icon:"🛡️", text:"Gain 1 shield.", good:true, shield:1 }
+    ],
+    chance: [
+      { title:"LUCKY BREAK", icon:"✨", text:"Move forward 3 spaces.", good:true, move:3 },
+      { title:"BONUS", icon:"🎁", text:"Gain +2 points.", good:true, score:2 }
+    ],
+    risk: [
+      { title:"SICK DAY", icon:"🤒", text:"Lose 1 point.", good:false, score:-1 },
+      { title:"SLIPPED", icon:"⚠️", text:"Move back 2 spaces.", good:false, back:2 }
+    ],
+    quarantine: [
+      { title:"QUARANTINE", icon:"🚫", text:"Miss next turn.", good:false, skip:1 }
+    ]
+  };
+
+  function players() {
+    if (!Array.isArray(state.players)) state.players = [];
+    return state.players;
   }
 
-  function getCurrentPlayer() {
-    const list = getPlayers();
+  function currentPlayer() {
+    const list = players();
     if (!list.length) return null;
-    if (typeof window.state.currentPlayerIndex !== "number") window.state.currentPlayerIndex = 0;
-    if (window.state.currentPlayerIndex < 0 || window.state.currentPlayerIndex >= list.length) window.state.currentPlayerIndex = 0;
-    return list[window.state.currentPlayerIndex] || null;
+    if (typeof state.currentPlayerIndex !== "number") state.currentPlayerIndex = 0;
+    return list[state.currentPlayerIndex] || list[0];
   }
 
-  function getBoardSpacesSafe() {
-    if (typeof window.getBoardSpaces === "function") {
-      const spaces = window.getBoardSpaces();
-      return Array.isArray(spaces) ? spaces : [];
-    }
-    return [];
+  function spaces() {
+    return typeof window.getBoardSpaces === "function" ? window.getBoardSpaces() : [];
   }
 
-  function getMaxPosition() {
-    return Math.max(0, getBoardSpacesSafe().length - 1);
+  function maxPos() {
+    return Math.max(0, spaces().length - 1);
   }
 
-  function rerender() {
+  function render() {
     if (typeof window.safeRender === "function") window.safeRender();
   }
 
-  function addLog(message) {
-    if (!Array.isArray(window.state.eventLog)) window.state.eventLog = [];
-    window.state.eventLog.push({ id: Date.now() + Math.random(), message });
+  function log(msg) {
+    if (!Array.isArray(state.eventLog)) state.eventLog = [];
+    state.eventLog.push({ id: Date.now() + Math.random(), message: msg });
   }
 
-  function randomItem(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
-
-  function sound(name) {
+  function sound(fn) {
     try {
-      if (typeof window[name] === "function") window[name]();
+      if (typeof window[fn] === "function") window[fn]();
     } catch {}
   }
 
-  function showWinner(player) {
-    document.getElementById("winnerOverlay")?.remove();
-
-    const overlay = document.createElement("div");
-    overlay.id = "winnerOverlay";
-    overlay.style.cssText = `
-      position:fixed;
-      inset:0;
-      z-index:4200;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-      background:rgba(6,14,22,.72);
-      backdrop-filter:blur(10px);
-    `;
-
-    overlay.innerHTML = `
-      <div style="
-        width:min(520px,100%);
-        border-radius:34px;
-        padding:30px;
-        text-align:center;
-        background:linear-gradient(180deg,#f7f1e7,#e6dac8);
-        color:#24394c;
-        border:1px solid rgba(255,255,255,.35);
-        box-shadow:0 30px 70px rgba(0,0,0,.38);
-      ">
-        <div style="
-          width:92px;
-          height:92px;
-          margin:0 auto 18px;
-          border-radius:28px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size:44px;
-          background:linear-gradient(135deg,#ffd87a,#ffb347);
-          box-shadow:0 18px 28px rgba(0,0,0,.18);
-        ">🏆</div>
-
-        <div style="
-          font-size:13px;
-          font-weight:1000;
-          letter-spacing:.22em;
-          color:#9b7d39;
-          margin-bottom:10px;
-        ">
-          WINNER
-        </div>
-
-        <div style="
-          font-size:38px;
-          line-height:1;
-          font-weight:1000;
-          letter-spacing:-.04em;
-          margin-bottom:10px;
-        ">
-          ${player.name} Wins!
-        </div>
-
-        <div style="
-          font-size:17px;
-          line-height:1.45;
-          color:#60707c;
-          margin-bottom:24px;
-        ">
-          Reached the Brain first and completed the anatomy journey.
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <button id="playAgainBtn" style="
-            height:56px;
-            border:none;
-            border-radius:18px;
-            cursor:pointer;
-            font-weight:1000;
-            color:white;
-            background:linear-gradient(135deg,#78b7ad,#5f9f96);
-          ">
-            Play Again
-          </button>
-
-          <button id="winnerLobbyBtn" style="
-            height:56px;
-            border:none;
-            border-radius:18px;
-            cursor:pointer;
-            font-weight:1000;
-            color:#24394c;
-            background:rgba(255,255,255,.72);
-          ">
-            Lobby
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    document.getElementById("playAgainBtn")?.addEventListener("click", () => {
-      overlay.remove();
-
-      const players = getPlayers();
-      players.forEach(p => {
-        p.position = 0;
-        p.score = 0;
-        p.shields = 0;
-        p.skip = 0;
-      });
-
-      window.state.currentPlayerIndex = 0;
-      window.state.lastRoll = null;
-      window.state.lastCard = { text: "New game started." };
-      window.state.feedback = null;
-      window.state.eventLog = [{ id: Date.now(), message: "New game started." }];
-      rerender();
-    });
-
-    document.getElementById("winnerLobbyBtn")?.addEventListener("click", () => {
-      overlay.remove();
-      window.state.entered = false;
-      rerender();
-    });
+  function random(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  async function movePlayer(player, steps) {
-    const spaces = getBoardSpacesSafe();
-    const max = getMaxPosition();
+  function tileType(pos) {
+    const s = spaces()[pos];
+    return s ? s.type : "normal";
+  }
 
-    for (let i = 0; i < steps; i++) {
-      player.position += 1;
-      if (player.position > max) player.position = max;
+  async function move(player, amount) {
+    const board = spaces();
 
-      const tile = spaces[player.position];
+    for (let i = 0; i < amount; i++) {
+      player.position++;
+      if (player.position > maxPos()) player.position = maxPos();
 
-      if (tile && typeof window.createTrailAt === "function") window.createTrailAt(tile);
-      if (typeof window.pulseLanding === "function") window.pulseLanding(player.position);
+      if (board[player.position]) {
+        window.createTrailAt?.(board[player.position]);
+        window.pulseLanding?.(player.position);
+      }
 
-      rerender();
+      render();
       await wait(220);
     }
   }
 
-  async function nextTurn() {
-    const players = getPlayers();
-    if (!players.length) return;
-    window.state.currentPlayerIndex = (window.state.currentPlayerIndex + 1) % players.length;
-    rerender();
+  async function moveBack(player, amount) {
+    const board = spaces();
+
+    for (let i = 0; i < amount; i++) {
+      player.position--;
+      if (player.position < 0) player.position = 0;
+
+      if (board[player.position]) {
+        window.createTrailAt?.(board[player.position]);
+        window.pulseLanding?.(player.position);
+      }
+
+      render();
+      await wait(220);
+    }
   }
 
-  async function triggerTrivia(player) {
-    const q = randomItem(TRIVIA);
+  function nextTurn() {
+    const list = players();
+    if (!list.length) return;
+    state.currentPlayerIndex = (state.currentPlayerIndex + 1) % list.length;
+    render();
+  }
 
-    window.state.trivia = {
-      category: q.category,
+  function showCard(card) {
+    return new Promise(resolve => {
+      document.getElementById("premiumCardOverlay")?.remove();
+
+      const wrap = document.createElement("div");
+      wrap.id = "premiumCardOverlay";
+
+      wrap.innerHTML = `
+        <div class="game-card-popup ${card.good ? "good" : "bad"}">
+          <div class="game-card-icon">${card.icon}</div>
+          <div class="game-card-type">${card.title}</div>
+          <div class="game-card-text">${card.text}</div>
+          <button class="game-card-btn">Continue</button>
+        </div>
+      `;
+
+      document.body.appendChild(wrap);
+
+      const close = () => {
+        wrap.remove();
+        resolve();
+      };
+
+      wrap.querySelector(".game-card-btn").onclick = close;
+      setTimeout(close, 2600);
+    });
+  }
+
+  async function applyCard(player, card) {
+    state.feedback = { ok: card.good, text: card.text };
+    log(`${player.name}: ${card.text}`);
+
+    await showCard(card);
+
+    if (card.score) player.score = Math.max(0, (player.score || 0) + card.score);
+    if (card.shield) player.shields = (player.shields || 0) + card.shield;
+    if (card.skip) player.skip = (player.skip || 0) + card.skip;
+    if (card.move) await move(player, card.move);
+    if (card.back) await moveBack(player, card.back);
+
+    render();
+  }
+
+  async function trivia(player) {
+    const q = random(TRIVIA);
+
+    state.trivia = {
       q: q.q,
-      choices: q.choices,
+      choices: q.c,
       answer: q.a
     };
 
-    window.state.timer = 20;
-    rerender();
+    state.timer = 20;
+    render();
 
-    clearInterval(window.__triviaTimer);
+    clearInterval(window.__timer);
 
-    window.__triviaTimer = setInterval(async () => {
-      window.state.timer--;
+    window.__timer = setInterval(() => {
+      state.timer--;
+      render();
 
-      if (window.state.timer <= 5 && window.state.timer > 0) sound("playTriviaTickSound");
-
-      if (window.state.timer <= 0) {
-        clearInterval(window.__triviaTimer);
-        window.state.trivia = null;
-        window.state.feedback = { ok: false, text: `${player.name} ran out of time.` };
-        sound("playWrongSound");
-        rerender();
-        await wait(300);
-        await nextTurn();
-      } else {
-        rerender();
+      if (state.timer <= 0) {
+        clearInterval(window.__timer);
+        state.trivia = null;
+        state.feedback = { ok:false, text:"Time ran out." };
+        nextTurn();
       }
     }, 1000);
   }
 
   window.submitTrivia = async function (choice) {
-    if (!window.state.trivia) return;
+    if (!state.trivia) return;
 
-    clearInterval(window.__triviaTimer);
+    clearInterval(window.__timer);
 
-    const player = getCurrentPlayer();
-    if (!player) return;
+    const p = currentPlayer();
+    const ok = choice === state.trivia.answer;
 
-    const correct = choice === window.state.trivia.answer;
-
-    if (correct) {
-      player.score = (player.score || 0) + 2;
-      window.state.feedback = { ok: true, text: `${player.name} answered correctly! +2 points.` };
+    if (ok) {
+      p.score = (p.score || 0) + 2;
+      state.feedback = { ok:true, text:"Correct! +2 points." };
       sound("playCorrectSound");
-      window.state.trivia = null;
-      rerender();
-      await movePlayer(player, 1);
+      state.trivia = null;
+      render();
+      await move(p, 1);
     } else {
-      window.state.feedback = { ok: false, text: `${player.name} answered incorrectly.` };
+      state.feedback = { ok:false, text:"Incorrect." };
       sound("playWrongSound");
-      window.state.trivia = null;
-      rerender();
+      state.trivia = null;
+      render();
     }
 
     await wait(250);
-    await nextTurn();
+    nextTurn();
   };
 
-  async function resolveLanding(player) {
-    if (player.position >= getMaxPosition()) {
-      window.state.feedback = { ok: true, text: `${player.name} reached the Brain and wins!` };
-      addLog(`${player.name} wins!`);
+  async function landing(player) {
+    if (player.position >= maxPos()) {
+      state.feedback = { ok:true, text:`${player.name} reached the Brain!` };
       sound("playWinSound");
-      rerender();
-
-      await wait(700);
-      showWinner(player);
+      render();
       return;
     }
 
-    await triggerTrivia(player);
+    const type = tileType(player.position);
+
+    if (CARD_SETS[type]) {
+      await applyCard(player, random(CARD_SETS[type]));
+      await wait(200);
+      nextTurn();
+      return;
+    }
+
+    await trivia(player);
   }
 
   window.handleRoll = async function () {
-    const player = getCurrentPlayer();
-    if (!player || window.state.isRolling) return;
+    const p = currentPlayer();
+    if (!p || state.isRolling) return;
 
-    if ((player.skip || 0) > 0) {
-      player.skip--;
-      window.state.feedback = { ok: false, text: `${player.name} missed a turn.` };
-      sound("playMissTurnSound");
-      rerender();
-      await wait(250);
-      await nextTurn();
+    if ((p.skip || 0) > 0) {
+      p.skip--;
+      state.feedback = { ok:false, text:"Missed turn." };
+      render();
+      nextTurn();
       return;
     }
 
-    window.state.isRolling = true;
-    rerender();
+    state.isRolling = true;
+    render();
 
     const roll = Math.floor(Math.random() * 6) + 1;
 
     sound("playDiceSound");
+    await window.showDiceRoll?.(roll);
 
-    if (typeof window.showDiceRoll === "function") {
-      await window.showDiceRoll(roll);
-    }
+    state.lastRoll = roll;
+    log(`${p.name} rolled ${roll}`);
 
-    window.state.lastRoll = roll;
-    window.state.lastCard = { text: `${player.name} rolled ${roll}.` };
-    addLog(`${player.name} rolled ${roll}.`);
+    await move(p, roll);
 
-    await movePlayer(player, roll);
+    state.isRolling = false;
+    render();
 
-    window.state.isRolling = false;
-    rerender();
-
-    await wait(180);
-    await resolveLanding(player);
+    await wait(150);
+    await landing(p);
   };
 })();
