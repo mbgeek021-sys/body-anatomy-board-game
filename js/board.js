@@ -1,129 +1,232 @@
 (function () {
-  const TILE_COUNT = 50;
+  const TOKENS = ["🩺", "💉", "💊", "🩹", "🌡️", "🫀", "🧠", "❤️"];
 
-  const TILE_TYPES = [
-    "start",
-    "health",
-    "normal",
-    "chance",
-    "risk",
-    "normal",
-    "health",
-    "normal",
-    "chance",
-    "risk"
-  ];
+  window.getPlayerToken = function (index = 0) {
+    return TOKENS[index % TOKENS.length];
+  };
 
-  const TOKEN_SET = [
-    { key: "nurse", icon: "✚", cls: "token-nurse" },
-    { key: "doctor", icon: "⚕", cls: "token-doctor" },
-    { key: "pill", icon: "◉", cls: "token-pill" },
-    { key: "bone", icon: "⟟", cls: "token-bone" },
-    { key: "brain", icon: "◐", cls: "token-brain" },
-    { key: "heart", icon: "♥", cls: "token-heart" }
-  ];
-
-  function buildSpiral(count) {
-    const pts = [];
-    let left = 0;
-    let right = 6;
-    let top = 0;
-    let bottom = 6;
-
-    while (pts.length < count && left <= right && top <= bottom) {
-      for (let x = left; x <= right && pts.length < count; x++) pts.push([x, top]);
-      top++;
-
-      for (let y = top; y <= bottom && pts.length < count; y++) pts.push([right, y]);
-      right--;
-
-      for (let x = right; x >= left && pts.length < count; x--) pts.push([x, bottom]);
-      bottom--;
-
-      for (let y = bottom; y >= top && pts.length < count; y--) pts.push([left, y]);
-      left++;
-    }
-
-    return pts;
+  function esc(str = "") {
+    if (window.escapeHtml) return window.escapeHtml(str);
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
-  const spiral = buildSpiral(TILE_COUNT);
+  function currentPos() {
+    if (typeof window.currentPlayer === "function") {
+      const p = window.currentPlayer();
+      if (p) return p.position || 0;
+    }
+    return 0;
+  }
+
+  function tileType(i, last) {
+    if (i === 0) return "start";
+    if (i === last) return "finish";
+    if (i % 11 === 0) return "quarantine";
+    if (i % 8 === 0) return "risk";
+    if (i % 6 === 0) return "chance";
+    if (i % 5 === 0) return "safe";
+    if (i % 4 === 0) return "health";
+    return "normal";
+  }
+
+  function accent(type) {
+    switch (type) {
+      case "start": return "#63b88e";
+      case "finish": return "#9e8bd8";
+      case "safe": return "#74b7b0";
+      case "health": return "#86a7d8";
+      case "risk": return "#cb93a0";
+      case "chance": return "#a595d8";
+      case "quarantine": return "#d0aa73";
+      default: return "#314b66";
+    }
+  }
+
+  function emoji(name) {
+    const map = {
+      Start: "⭐", Heel: "🦶", Toes: "🦶", Talus: "🦴", Calcaneus: "🦶",
+      Achilles: "🦶", Tibia: "🦴", Fibula: "🦴", Patella: "🦴",
+      Quadriceps: "🦵", Hamstrings: "🦵", Femur: "🦴", "Hip Joint": "🦴",
+      Pelvis: "🦴", Bladder: "💧", Uterus: "♀️", Colon: "🧫",
+      Appendix: "🧫", Rectum: "🧫", "Small Intestine": "🧫",
+      Gallbladder: "🟢", Liver: "🟤", Pancreas: "🧪", Spleen: "🩸",
+      Stomach: "🍽️", Esophagus: "🥼", Diaphragm: "🫁", Aorta: "🫀",
+      Ribs: "🦴", Sternum: "🦴", Lungs: "🫁", Bronchi: "🫁",
+      Trachea: "🫁", Heart: "🫀", Clavicle: "🦴", Scapula: "🦴",
+      Humerus: "🦴", Radius: "🦴", Ulna: "🦴", Thumb: "✋",
+      Eyes: "👁️", Teeth: "🦷", "Nasal Cavity": "👃",
+      "Temporal Bone": "💀", "Frontal Bone": "💀", Cranium: "💀",
+      "Brain Stem": "🧠", Brain: "🧠"
+    };
+    return map[name] || "🔬";
+  }
 
   window.getBoardSpaces = function () {
-    return spiral.map((p, i) => ({
-      index: i,
-      x: p[0],
-      y: p[1],
-      type: i === TILE_COUNT - 1
-        ? "finish"
-        : TILE_TYPES[i % TILE_TYPES.length]
+    const names = [
+      "Start","Heel","Toes","Talus","Calcaneus","Achilles","Tibia",
+      "Fibula","Patella","Quadriceps","Hamstrings","Femur","Hip Joint",
+      "Pelvis","Bladder","Uterus","Colon","Appendix","Rectum",
+      "Small Intestine","Gallbladder","Liver","Pancreas","Spleen",
+      "Stomach","Esophagus","Diaphragm","Aorta","Ribs","Sternum",
+      "Lungs","Bronchi","Trachea","Heart","Clavicle","Scapula",
+      "Humerus","Radius","Ulna","Thumb","Eyes","Teeth","Nasal Cavity",
+      "Temporal Bone","Frontal Bone","Cranium","Brain Stem","Brain"
+    ];
+
+    const spiral = [
+      [6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],
+      [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+      [0,5],[0,4],[0,3],[0,2],[0,1],[0,0],
+      [1,0],[2,0],[3,0],[4,0],[5,0],
+      [5,1],[5,2],[5,3],[5,4],[5,5],
+      [4,5],[3,5],[2,5],[1,5],
+      [1,4],[1,3],[1,2],[1,1],
+      [2,1],[3,1],[4,1],
+      [4,2],[4,3],[4,4],
+      [3,4],[2,4],[2,3],[2,2],[3,2]
+    ];
+
+    const minX = 14;
+    const maxX = 86;
+    const minY = 8;
+    const maxY = 92;
+
+    const stepX = (maxX - minX) / 6;
+    const stepY = (maxY - minY) / 6;
+
+    return spiral.slice(0, names.length).map(([r, c], i) => ({
+      id: i,
+      name: names[i],
+      x: minX + c * stepX,
+      y: minY + r * stepY,
+      type: tileType(i, names.length - 1),
     }));
   };
 
-  window.getPlayerToken = function (index) {
-    const token = TOKEN_SET[index % TOKEN_SET.length];
-    return token.icon;
+  function connector(a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.sqrt(dx * dx + dy * dy) - 8;
+    const ang = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    return `
+      <div
+        class="route-connector"
+        style="
+          left:${(a.x + b.x) / 2}%;
+          top:${(a.y + b.y) / 2}%;
+          width:${len}%;
+          transform:translate(-50%,-50%) rotate(${ang}deg);
+        "
+      >
+        <div class="route-connector-core"></div>
+      </div>
+    `;
+  }
+
+  window.createTrailAt = function (space) {
+    const shell = document.querySelector(".board-stage");
+    if (!shell || !space) return;
+
+    const dot = document.createElement("div");
+    dot.className = "trail-dot";
+    dot.style.left = `${space.x}%`;
+    dot.style.top = `${space.y}%`;
+
+    shell.appendChild(dot);
+    setTimeout(() => dot.remove(), 300);
   };
 
-  function getPlayerTokenClass(index) {
-    const token = TOKEN_SET[index % TOKEN_SET.length];
-    return token.cls;
-  }
+  window.showDiceRoll = async function (roll) {
+    const overlay = document.getElementById("diceOverlay");
+    const box = document.getElementById("diceBox");
+    const label = document.getElementById("diceLabel");
 
-  function tileLabel(tile) {
-    if (tile.type === "start") return "START";
-    if (tile.type === "finish") return "BRAIN";
-    if (tile.type === "health") return "HEALTH";
-    if (tile.type === "chance") return "CHANCE";
-    if (tile.type === "risk") return "RISK";
-    return tile.index + 1;
-  }
+    if (!overlay || !box || !label) return;
 
-  function tileClass(tile) {
-    return `tile ${tile.type}`;
-  }
+    overlay.classList.remove("hidden");
+    label.textContent = "Rolling...";
 
-  function renderPlayers(tileIndex) {
-    if (!window.state || !Array.isArray(window.state.players)) return "";
+    const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
 
-    const here = window.state.players.filter(p => (p.position || 0) === tileIndex);
+    for (let i = 0; i < 10; i++) {
+      box.textContent = faces[Math.floor(Math.random() * 6)];
+      await new Promise(r => setTimeout(r, 70));
+    }
 
-    return here.map((player, i) => {
-      const playerIndex = window.state.players.indexOf(player);
+    box.textContent = roll;
+    label.textContent = `Rolled ${roll}`;
+
+    await new Promise(r => setTimeout(r, 450));
+    overlay.classList.add("hidden");
+  };
+
+  window.pulseLanding = function (id) {
+    const tile = document.querySelector(`[data-space-id="${id}"]`);
+    if (!tile) return;
+
+    tile.classList.remove("soft-pulse");
+    void tile.offsetWidth;
+    tile.classList.add("soft-pulse");
+
+    setTimeout(() => tile.classList.remove("soft-pulse"), 400);
+  };
+
+  window.boardMarkup = function () {
+    const spaces = window.getBoardSpaces();
+    const players = Array.isArray(state.players) ? state.players : [];
+    const active = currentPos();
+
+    const routes = spaces
+      .slice(0, -1)
+      .map((s, i) => connector(s, spaces[i + 1]))
+      .join("");
+
+    const tiles = spaces.map(space => {
+      const onTile = players.filter(p => p.position === space.id);
 
       return `
-        <div class="premium-token ${getPlayerTokenClass(playerIndex)} token-stack-${i}">
-          <div class="premium-token-core">
-            ${window.getPlayerToken(playerIndex)}
+        <div
+          class="premium-tile-paper ${active === space.id ? "active-space" : ""} ${space.type === "finish" ? "finish-space" : ""}"
+          data-space-id="${space.id}"
+          style="left:${space.x}%;top:${space.y}%"
+        >
+          <div class="paper-tile-accent" style="background:${accent(space.type)}"></div>
+
+          ${space.type === "finish" ? `<div class="finish-badge">FINISH</div>` : ""}
+
+          <div class="paper-tile-id">#${space.id}</div>
+
+          <div class="paper-tile-icon-wrap">
+            <div class="paper-tile-icon">${emoji(space.name)}</div>
+          </div>
+
+          <div class="paper-tile-name">${esc(space.name)}</div>
+
+          <div class="paper-token-row">
+            ${onTile.map((p, i) => `
+              <div class="paper-token">${window.getPlayerToken(i)}</div>
+            `).join("")}
           </div>
         </div>
       `;
     }).join("");
-  }
-
-  window.boardMarkup = function () {
-    const spaces = window.getBoardSpaces();
 
     return `
       <div class="board-stage premium-board-bg">
-        <div class="board-grid premium-board-grid">
-          ${spaces.map(tile => `
-            <div
-              class="${tileClass(tile)}"
-              data-pos="${tile.index}"
-              style="grid-column:${tile.x + 1};grid-row:${tile.y + 1};"
-            >
-              <div class="tile-inner">
-                <div class="tile-label">${tileLabel(tile)}</div>
-                ${renderPlayers(tile.index)}
-              </div>
-            </div>
-          `).join("")}
+        <div class="board-paper-overlay"></div>
+
+        <div class="route-layer">
+          ${routes}
+        </div>
+
+        <div class="tile-layer">
+          ${tiles}
         </div>
       </div>
     `;
   };
-
-  window.createTrailAt = function () {};
-  window.pulseLanding = function () {};
 })();
