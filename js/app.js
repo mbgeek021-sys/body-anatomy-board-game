@@ -232,11 +232,16 @@
             </div>
           </div>
 
-          <div class="hud-card" style="max-width:1440px;width:100%;margin:0 auto;">
+           <div class="hud-card notebook-log-wrap">
             <div class="hud-title">Game Log</div>
-            <div class="action-box">
-              ${(state.eventLog.length ? state.eventLog.slice(-8).reverse() : [{message:"No game events yet."}]).map(function (item) {
-                return `<div style="margin-bottom:8px;">${escapeHtml(item.message || "")}</div>`;
+            <div class="notebook-log">
+              ${(state.eventLog.length ? state.eventLog.slice(-8).reverse() : [{message:"No game events yet."}]).map(function (item, index) {
+                return `
+                  <div class="notebook-row">
+                    <div class="notebook-dot">${index + 1}</div>
+                    <div class="notebook-text">${escapeHtml(item.message || "")}</div>
+                  </div>
+                `;
               }).join("")}
             </div>
           </div>
