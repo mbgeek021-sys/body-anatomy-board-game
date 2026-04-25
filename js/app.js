@@ -261,6 +261,9 @@
     return `
       <div class="trivia-modal">
         <div class="trivia-card">
+          <div class="trivia-timer-badge">
+            ⏱ ${escapeHtml(state.timer || 20)}s
+          </div>
           <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
           <div class="trivia-grid">
             ${state.trivia.choices.map(function (choice) {
