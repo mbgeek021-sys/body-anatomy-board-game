@@ -1560,3 +1560,57 @@ button,input{
   line-height:1.45;
   font-weight:700;
 }
+
+/* PREMIUM TRIVIA POPUP POLISH */
+
+.trivia-modal{
+  z-index:2600;
+  background:rgba(6,14,22,.68);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+.trivia-card{
+  max-width:880px;
+  border-radius:34px;
+  padding:30px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.52), transparent 34%),
+    linear-gradient(180deg,#f8f1e6,#dfd2bd);
+  border:1px solid rgba(255,255,255,.42);
+  box-shadow:0 32px 70px rgba(0,0,0,.42);
+}
+
+.trivia-q{
+  font-size:32px;
+  line-height:1.12;
+  color:#24394c;
+  text-align:center;
+}
+
+.trivia-choice{
+  min-height:82px;
+  border:1px solid rgba(36,57,76,.10);
+  box-shadow:0 10px 20px rgba(52,35,18,.10);
+}
+
+.trivia-choice:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.02);
+}
+
+@media (max-width:760px){
+  .trivia-card{
+    padding:22px;
+    border-radius:26px;
+  }
+
+  .trivia-q{
+    font-size:24px;
+  }
+
+  .trivia-choice{
+    min-height:66px;
+    font-size:16px;
+  }
+}
