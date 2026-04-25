@@ -1672,3 +1672,45 @@ button,input{
     font-size:18px;
   }
 }
+
+/* PREMIUM BACKGROUND UPGRADE */
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(143,196,188,.13), transparent 22%),
+    radial-gradient(circle at 88% 22%, rgba(147,179,223,.12), transparent 24%),
+    radial-gradient(circle at 50% 88%, rgba(247,241,231,.08), transparent 26%);
+}
+
+.screen{
+  position:relative;
+  z-index:1;
+}
+
+.screen::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.16;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:46px 46px;
+  mask-image:radial-gradient(circle at center, black, transparent 74%);
+  -webkit-mask-image:radial-gradient(circle at center, black, transparent 74%);
+}
+
+.lobby-left,
+.lobby-right,
+.topbar,
+.hud-card,
+.board-panel{
+  position:relative;
+  z-index:2;
+}
