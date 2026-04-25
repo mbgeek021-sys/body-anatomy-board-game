@@ -1,7 +1,6 @@
 (function () {
   window.state = window.state || {
     entered: false,
-    connectionLabel: "Ready",
     roomCode: "ROOM1",
     joinCode: "",
     lobbyName: "",
@@ -14,35 +13,19 @@
     trivia: null,
     timer: 20,
     isRolling: false,
-    audioMuted: false,
     toast: "",
-    soundPanelOpen: false,
     invitePopupOpen: false,
-    inviteLink: "",
-    soundSettings: {
-      master: 80,
-      dice: 85,
-      trivia: 80,
-      effects: 80
-    }
+    inviteLink: ""
   };
 
-  window.APP_CONFIG = window.APP_CONFIG || {
-    GAME_TITLE: "Body Anatomy Board Game",
-    SUBTITLE: "Class MIB Group Project — Beverly, Stephanie, Lizeth",
-    SCHOOL: "North-West College • West Covina, CA • Medical Insurance Biller"
-  };
-
-  function esc(v) {
-    return String(v ?? "")
+  window.escapeHtml = function (v) {
+    return String(v == null ? "" : v)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-  }
+  };
 
-  window.escapeHtml = esc;
-
-  function makeRoomCode() {
+  function makeCode() {
     return Math.random().toString(36).slice(2, 7).toUpperCase();
   }
 
@@ -53,51 +36,33 @@
 
   window.currentPlayer = currentPlayer;
 
-  function myPlayer() {
-    if (!Array.isArray(state.players) || !state.players.length) return null;
-    return state.players[0];
-  }
+  window.getRoomLink = function () {
+    return window.location.origin + window.location.pathname + "?room=" + encodeURIComponent(state.roomCode || "");
+  };
 
-  window.myPlayer = myPlayer;
-
-  function showToast(msg) {
-    state.toast = msg;
-    safeRender();
-
-    clearTimeout(window.__toast);
-    window.__toast = setTimeout(() => {
-      state.toast = "";
-      safeRender();
-    }, 1600);
-  }
-
-  window.showToast = showToast;
-
-  function roomLink() {
-    return `${location.origin}${location.pathname}?room=${encodeURIComponent(state.roomCode)}`;
-  }
-
-  window.getRoomLink = roomLink;
-
-  window.copyInviteLink = async function () {
-    const link = roomLink();
+  window.copyInviteLink = function () {
+    var link = window.getRoomLink();
     state.inviteLink = link;
 
-    try {
-      await navigator.clipboard.writeText(link);
-      state.invitePopupOpen = true;
-      safeRender();
-    } catch {
-      prompt("Copy this link:", link);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link).then(function () {
+        state.invitePopupOpen = true;
+        window.safeRender();
+      });
+    } else {
+      prompt("Copy this invite link:", link);
     }
   };
 
-  window.copyRoomCode = async function () {
-    try {
-      await navigator.clipboard.writeText(state.roomCode);
-      showToast("Room code copied!");
-    } catch {
-      prompt("Copy room code:", state.roomCode);
+  window.copyRoomCode = function () {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(state.roomCode || "");
+      state.toast = "Room code copied!";
+      window.safeRender();
+      setTimeout(function () {
+        state.toast = "";
+        window.safeRender();
+      }, 1500);
     }
   };
 
@@ -107,16 +72,16 @@
         <div class="topbar-left">
           <div class="logo">🧠</div>
           <div>
-            <div class="topbar-title">${esc(APP_CONFIG.GAME_TITLE)}</div>
+            <div class="topbar-title">Body Anatomy Board Game</div>
             <div class="topbar-meta">
-              ${esc(APP_CONFIG.SUBTITLE)}<br>
-              ${esc(APP_CONFIG.SCHOOL)}
+              Class MIB Group Project — Beverly, Stephanie, Lizeth<br>
+              North-West College • West Covina, CA • Medical Insurance Biller
             </div>
           </div>
         </div>
 
         <div class="chip-row">
-          <div class="chip">Room: ${esc(state.roomCode)}</div>
+          <div class="chip">Room: ${escapeHtml(state.roomCode)}</div>
           <button class="btn btn-white" id="copyCodeBtn">📋 Code</button>
           <button class="btn btn-blue" id="inviteBtn">🔗 Invite</button>
           <button class="btn btn-white" id="backBtn">Back</button>
@@ -127,7 +92,7 @@
 
   function toast() {
     if (!state.toast) return "";
-    return `<div class="app-toast">${esc(state.toast)}</div>`;
+    return `<div class="app-toast">${escapeHtml(state.toast)}</div>`;
   }
 
   function invitePopup() {
@@ -138,61 +103,68 @@
         <div class="invite-popup-card">
           <div class="invite-popup-icon">🔗</div>
           <div class="invite-popup-title">Invite Link Copied!</div>
-          <div class="invite-popup-text">Share with classmates to join the same room.</div>
-          <div class="invite-popup-code">Room ${esc(state.roomCode)}</div>
-          <div class="invite-popup-link">${esc(state.inviteLink)}</div>
+          <div class="invite-popup-text">Share this link so others join the same room.</div>
+          <div class="invite-popup-code">Room ${escapeHtml(state.roomCode)}</div>
+          <div class="invite-popup-link">${escapeHtml(state.inviteLink)}</div>
           <button class="btn btn-main" id="closeInviteBtn">Done</button>
         </div>
       </div>
     `;
   }
 
-  function lobby() {
+  function lobbyScreen() {
     return `
       <div class="screen">
         <div class="lobby-wrap premium-lobby-v2">
-
           <div class="lobby-left lobby-promo-card">
-            <div class="lobby-kicker">ANATOMY GAME ROOM</div>
-            <div class="topbar-title">${esc(APP_CONFIG.GAME_TITLE)}</div>
+            <div class="brand brand-lobby">
+              <div class="logo">🧠</div>
+              <div>
+                <div class="lobby-kicker">Anatomy Game Room</div>
+                <div class="topbar-title">Body Anatomy Board Game</div>
+                <div class="topbar-meta">
+                  Class MIB Group Project — Beverly, Stephanie, Lizeth<br>
+                  North-West College • West Covina, CA • Medical Insurance Biller
+                </div>
+              </div>
+            </div>
 
-            <div class="lobby-hero-title">
-              Roll, learn, race to the Brain.
+            <div class="lobby-hero-copy">
+              <div class="lobby-hero-title">Roll, learn, race to the Brain.</div>
+              <div class="lobby-hero-text">Share your room code and start when everyone is ready.</div>
             </div>
 
             <div class="lobby-room-spotlight">
               <div class="lobby-room-label">ROOM CODE</div>
-              <div class="lobby-room-code">${esc(state.roomCode)}</div>
-
+              <div class="lobby-room-code">${escapeHtml(state.roomCode)}</div>
               <div class="lobby-room-actions">
-                <button class="btn btn-white" id="copyCodeLobby">📋 Code</button>
-                <button class="btn btn-blue" id="inviteLobby">🔗 Invite</button>
+                <button class="btn btn-white" id="copyCodeLobby">📋 Copy Code</button>
+                <button class="btn btn-blue" id="inviteLobby">🔗 Copy Invite Link</button>
               </div>
             </div>
           </div>
 
           <div class="lobby-right lobby-join-card">
-            <div class="lobby-title">Waiting for players</div>
+            <div>
+              <div class="lobby-tag">LOBBY</div>
+              <div class="lobby-title">Waiting for players</div>
 
-            <div class="entry-card">
-              <div class="entry-label">YOUR NAME</div>
-              <input id="nameInput" class="entry-input"
-                value="${esc(state.lobbyName)}"
-                placeholder="Enter your name">
-            </div>
+              <div class="entry-card">
+                <div class="entry-label">YOUR NAME</div>
+                <input id="nameInput" class="entry-input" value="${escapeHtml(state.lobbyName || "")}" placeholder="Enter your name">
+              </div>
 
-            <div class="entry-card">
-              <div class="entry-label">ROOM CODE</div>
-              <input id="codeInput" class="entry-input"
-                value="${esc(state.joinCode || state.roomCode)}">
-            </div>
+              <div class="entry-card">
+                <div class="entry-label">ROOM CODE</div>
+                <input id="codeInput" class="entry-input" value="${escapeHtml(state.joinCode || state.roomCode)}">
+              </div>
 
-            <div class="entry-actions">
-              <button class="btn btn-white" id="newCodeBtn">New Code</button>
-              <button class="btn btn-main" id="startBtn">Start Room</button>
+              <div class="entry-actions">
+                <button class="btn btn-white" id="newCodeBtn">New Code</button>
+                <button class="btn btn-main" id="startBtn">Start Room</button>
+              </div>
             </div>
           </div>
-
         </div>
 
         ${toast()}
@@ -201,89 +173,79 @@
     `;
   }
 
-  function turnCard() {
-    const p = currentPlayer();
+  function gameScreen() {
+    var board = "";
+
+    try {
+      board = typeof window.boardMarkup === "function" ? window.boardMarkup() : "";
+    } catch (e) {
+      board = `<div class="board-stage premium-board-bg">Board error: ${escapeHtml(e.message)}</div>`;
+    }
+
+    var p = currentPlayer();
 
     return `
-      <div class="hud-card">
-        <div class="hud-title">Current Turn</div>
-        <div class="turn-hero">
-          <h3>${esc(p ? p.name : "Player")}</h3>
-          <p>Last Roll: ${esc(state.lastRoll ?? "-")}</p>
-        </div>
-      </div>
-    `;
-  }
+      <div class="screen">
+        <div class="game-layout">
+          ${topbar()}
 
-  function actionsCard() {
-    return `
-      <div class="hud-card">
-        <div class="hud-title">Game Actions</div>
+          <div class="board-panel">${board}</div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <button class="btn btn-main" id="rollBtn" ${state.isRolling ? "disabled" : ""}>
-            🎲 ${state.isRolling ? "Rolling..." : "Roll"}
-          </button>
-
-          <button class="btn btn-blue" id="shareBtn">
-            🔗 Invite
-          </button>
-        </div>
-
-        <div class="action-box" style="margin-top:12px;">
-          ${esc(state.lastCard?.text || "Roll to begin.")}
-        </div>
-      </div>
-    `;
-  }
-
-  function playersCard() {
-    const list = Array.isArray(state.players) ? state.players : [];
-
-    return `
-      <div class="hud-card">
-        <div class="hud-title">Players</div>
-
-        <div class="players-strip">
-          ${list.map((p, i) => `
-            <div class="player-card">
-              <div class="player-top">
-                <div class="avatar">${window.getPlayerToken ? window.getPlayerToken(i) : "🩺"}</div>
-                <div>
-                  <div style="font-weight:1000">${esc(p.name)}</div>
-                  <div style="font-size:12px;color:var(--muted)">
-                    Position ${esc(p.position || 0)}
-                  </div>
-                </div>
-              </div>
-
-              <div style="font-size:12px;color:var(--muted);margin-top:8px;">
-                Score: ${esc(p.score || 0)}
+          <div class="hud-wrap">
+            <div class="hud-card">
+              <div class="hud-title">Current Turn</div>
+              <div class="turn-hero">
+                <h3>${escapeHtml(p ? p.name : "Player")}</h3>
+                <p>Last Roll: ${escapeHtml(state.lastRoll == null ? "-" : state.lastRoll)}</p>
               </div>
             </div>
-          `).join("")}
-        </div>
-      </div>
-    `;
-  }
 
-  function gameLogCard() {
-    const list = Array.isArray(state.eventLog) && state.eventLog.length
-      ? state.eventLog.slice(-8).reverse()
-      : [{ message: "No game events yet." }];
-
-    return `
-      <div class="hud-card notebook-log-wrap">
-        <div class="hud-title">Game Log</div>
-
-        <div class="notebook-log">
-          ${list.map((item, i) => `
-            <div class="notebook-row">
-              <div class="notebook-dot">${i + 1}</div>
-              <div class="notebook-text">${esc(item.message || "")}</div>
+            <div class="hud-card">
+              <div class="hud-title">Game Actions</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <button class="btn btn-main" id="rollBtn">${state.isRolling ? "Rolling..." : "🎲 Roll"}</button>
+                <button class="btn btn-blue" id="shareBtn">🔗 Invite</button>
+              </div>
+              <div class="action-box" style="margin-top:12px;">
+                ${escapeHtml(state.lastCard && state.lastCard.text ? state.lastCard.text : "Roll to begin.")}
+              </div>
             </div>
-          `).join("")}
+
+            <div class="hud-card">
+              <div class="hud-title">Players</div>
+              <div class="players-strip">
+                ${state.players.map(function (pl, i) {
+                  return `
+                    <div class="player-card">
+                      <div class="player-top">
+                        <div class="avatar">${window.getPlayerToken ? window.getPlayerToken(i) : "🩺"}</div>
+                        <div>
+                          <div style="font-weight:1000">${escapeHtml(pl.name)}</div>
+                          <div style="font-size:12px;color:var(--muted)">Position ${escapeHtml(pl.position || 0)}</div>
+                        </div>
+                      </div>
+                      <div style="font-size:12px;color:var(--muted)">Score: ${escapeHtml(pl.score || 0)}</div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          </div>
+
+          <div class="hud-card" style="max-width:1440px;width:100%;margin:0 auto;">
+            <div class="hud-title">Game Log</div>
+            <div class="action-box">
+              ${(state.eventLog.length ? state.eventLog.slice(-8).reverse() : [{message:"No game events yet."}]).map(function (item) {
+                return `<div style="margin-bottom:8px;">${escapeHtml(item.message || "")}</div>`;
+              }).join("")}
+            </div>
+          </div>
         </div>
+
+        ${triviaModal()}
+        ${diceOverlay()}
+        ${toast()}
+        ${invitePopup()}
       </div>
     `;
   }
@@ -294,142 +256,119 @@
     return `
       <div class="trivia-modal">
         <div class="trivia-card">
-          <div class="trivia-q">${esc(state.trivia.q)}</div>
-
+          <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
           <div class="trivia-grid">
-            ${state.trivia.choices.map(choice => `
-              <button class="btn trivia-choice" data-choice="${esc(choice)}">
-                ${esc(choice)}
-              </button>
-            `).join("")}
+            ${state.trivia.choices.map(function (choice) {
+              return `<button class="btn trivia-choice" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`;
+            }).join("")}
           </div>
         </div>
       </div>
     `;
   }
 
-  function game() {
+  function diceOverlay() {
     return `
-      <div class="screen">
-        <div class="game-layout">
-
-          ${topbar()}
-
-          <div class="board-panel">
-            ${window.boardMarkup ? window.boardMarkup() : ""}
-          </div>
-
-          <div class="hud-wrap">
-            ${turnCard()}
-            ${actionsCard()}
-            ${playersCard()}
-          </div>
-
-          ${gameLogCard()}
-        </div>
-
-        ${triviaModal()}
-        ${toast()}
-        ${invitePopup()}
+      <div id="diceOverlay" class="dice-overlay hidden">
+        <div id="diceBox" class="dice-box">⚀</div>
+        <div id="diceLabel" class="dice-label">Rolling...</div>
       </div>
     `;
   }
 
-  function renderApp() {
-    const app = document.getElementById("app");
-    if (!app) return;
+  window.safeRender = function () {
+    try {
+      var app = document.getElementById("app");
+      if (!app) return;
 
-    app.innerHTML = state.entered ? game() : lobby();
-    bind();
-  }
+      app.innerHTML = state.entered ? gameScreen() : lobbyScreen();
+      bindEvents();
+    } catch (e) {
+      document.getElementById("app").innerHTML = `
+        <div class="screen">
+          <div class="hud-card" style="max-width:900px;margin:40px auto;">
+            <div class="hud-title">App error</div>
+            <div>${escapeHtml(e.message)}</div>
+          </div>
+        </div>
+      `;
+    }
+  };
 
-  window.safeRender = renderApp;
-
-  function bindInvite() {
-    document.getElementById("closeInviteBtn")?.addEventListener("click", () => {
+  function bindEvents() {
+    document.getElementById("closeInviteBtn")?.addEventListener("click", function () {
       state.invitePopupOpen = false;
-      renderApp();
+      safeRender();
     });
 
-    document.getElementById("invitePopupBackdrop")?.addEventListener("click", (e) => {
+    document.getElementById("invitePopupBackdrop")?.addEventListener("click", function (e) {
       if (e.target.id === "invitePopupBackdrop") {
         state.invitePopupOpen = false;
-        renderApp();
+        safeRender();
       }
     });
-  }
 
-  function bindLobby() {
-    document.getElementById("nameInput")?.addEventListener("input", e => {
-      state.lobbyName = e.target.value;
-    });
-
-    document.getElementById("codeInput")?.addEventListener("input", e => {
-      state.joinCode = e.target.value.toUpperCase();
-    });
-
-    document.getElementById("newCodeBtn")?.addEventListener("click", () => {
-      state.roomCode = makeRoomCode();
-      state.joinCode = state.roomCode;
-      renderApp();
-    });
-
-    document.getElementById("startBtn")?.addEventListener("click", () => {
-      state.roomCode = state.joinCode || state.roomCode;
-
-      state.players = [{
-        id: 1,
-        name: state.lobbyName || "BEV",
-        position: 0,
-        score: 0,
-        shields: 0
-      }];
-
-      state.entered = true;
-      state.eventLog = [{ message: "Room started." }];
-      renderApp();
-    });
-
-    document.getElementById("copyCodeLobby")?.onclick = window.copyRoomCode;
-    document.getElementById("inviteLobby")?.onclick = window.copyInviteLink;
-
-    bindInvite();
-  }
-
-  function bindGame() {
-    document.getElementById("rollBtn")?.addEventListener("click", async () => {
-      await window.handleRoll?.();
-    });
-
-    document.getElementById("shareBtn")?.onclick = window.copyInviteLink;
-    document.getElementById("inviteBtn")?.onclick = window.copyInviteLink;
-    document.getElementById("copyCodeBtn")?.onclick = window.copyRoomCode;
-
-    document.getElementById("backBtn")?.addEventListener("click", () => {
-      state.entered = false;
-      renderApp();
-    });
-
-    document.querySelectorAll("[data-choice]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        await window.submitTrivia?.(btn.dataset.choice);
+    if (!state.entered) {
+      document.getElementById("nameInput")?.addEventListener("input", function (e) {
+        state.lobbyName = e.target.value;
       });
-    });
 
-    bindInvite();
+      document.getElementById("codeInput")?.addEventListener("input", function (e) {
+        state.joinCode = e.target.value.toUpperCase();
+      });
+
+      document.getElementById("newCodeBtn")?.addEventListener("click", function () {
+        state.roomCode = makeCode();
+        state.joinCode = state.roomCode;
+        safeRender();
+      });
+
+      document.getElementById("startBtn")?.addEventListener("click", function () {
+        state.roomCode = (state.joinCode || state.roomCode).toUpperCase();
+        state.players = [{
+          id: 1,
+          name: state.lobbyName || "BEV",
+          position: 0,
+          score: 0,
+          shields: 0
+        }];
+        state.currentPlayerIndex = 0;
+        state.entered = true;
+        state.eventLog = [{ message: "Room started." }];
+        safeRender();
+      });
+
+      document.getElementById("copyCodeLobby")?.addEventListener("click", copyRoomCode);
+      document.getElementById("inviteLobby")?.addEventListener("click", copyInviteLink);
+    } else {
+      document.getElementById("rollBtn")?.addEventListener("click", function () {
+        if (typeof window.handleRoll === "function") window.handleRoll();
+      });
+
+      document.getElementById("shareBtn")?.addEventListener("click", copyInviteLink);
+      document.getElementById("inviteBtn")?.addEventListener("click", copyInviteLink);
+      document.getElementById("copyCodeBtn")?.addEventListener("click", copyRoomCode);
+
+      document.getElementById("backBtn")?.addEventListener("click", function () {
+        state.entered = false;
+        safeRender();
+      });
+
+      document.querySelectorAll("[data-choice]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          if (typeof window.submitTrivia === "function") window.submitTrivia(btn.getAttribute("data-choice"));
+        });
+      });
+    }
   }
 
-  function bind() {
-    state.entered ? bindGame() : bindLobby();
-  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var params = new URLSearchParams(window.location.search);
+    var room = params.get("room");
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const params = new URLSearchParams(location.search);
-    const room = params.get("room");
-
-    state.roomCode = room ? room.toUpperCase() : makeRoomCode();
+    state.roomCode = room ? room.toUpperCase() : makeCode();
     state.joinCode = state.roomCode;
 
-    renderApp();
+    safeRender();
   });
 })();
