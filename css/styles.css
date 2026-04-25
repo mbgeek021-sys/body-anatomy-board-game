@@ -1465,3 +1465,54 @@ button,input{
     font-size:23px;
   }
 }
+
+/* PREMIUM NOTEBOOK GAME LOG */
+
+.notebook-log-wrap{
+  max-width:1440px;
+  width:100%;
+  margin:0 auto;
+}
+
+.notebook-log{
+  min-height:90px;
+  max-height:190px;
+  overflow:auto;
+  padding:14px;
+  border-radius:22px;
+  background:
+    linear-gradient(180deg, rgba(247,241,231,.08), rgba(247,241,231,.035));
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.notebook-row{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:12px 14px;
+  margin-bottom:10px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.07);
+}
+
+.notebook-dot{
+  width:26px;
+  height:26px;
+  border-radius:999px;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  font-weight:1000;
+  color:#20364a;
+  background:linear-gradient(180deg,#f7f1e7,#e6dac8);
+}
+
+.notebook-text{
+  color:#dfe8eb;
+  font-size:14px;
+  line-height:1.45;
+  font-weight:700;
+}
