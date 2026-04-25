@@ -1779,3 +1779,102 @@ body::after{
     gap:4px;
   }
 }
+
+/* SOFT GLOW UI OVERHAUL */
+
+.topbar,
+.board-panel,
+.hud-card,
+.lobby-left,
+.lobby-right{
+  border:1px solid rgba(143,196,188,.14) !important;
+  box-shadow:
+    0 22px 55px rgba(0,0,0,.28),
+    0 0 28px rgba(143,196,188,.08),
+    inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+.topbar{
+  background:
+    radial-gradient(circle at 20% 0%, rgba(143,196,188,.12), transparent 32%),
+    linear-gradient(180deg, rgba(19,42,64,.88), rgba(8,20,31,.96)) !important;
+}
+
+.board-panel{
+  padding:16px !important;
+  background:
+    linear-gradient(180deg, rgba(20,45,68,.72), rgba(8,20,31,.92)) !important;
+  border-radius:34px !important;
+}
+
+.board-stage{
+  border-radius:28px !important;
+  box-shadow:
+    0 20px 50px rgba(0,0,0,.25),
+    0 0 0 1px rgba(255,255,255,.06) !important;
+}
+
+.hud-card{
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143,196,188,.10), transparent 35%),
+    linear-gradient(180deg, rgba(17,38,58,.92), rgba(8,20,31,.96)) !important;
+  border-radius:28px !important;
+}
+
+.turn-hero{
+  background:
+    linear-gradient(135deg, rgba(143,196,188,.95), rgba(121,160,215,.95)) !important;
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.28);
+}
+
+.action-box,
+.player-card,
+.notebook-log{
+  background:rgba(255,255,255,.045) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.btn{
+  box-shadow:
+    0 12px 24px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.btn-main{
+  background:linear-gradient(135deg,#8fc4bc,#62a69c) !important;
+}
+
+.btn-blue{
+  background:linear-gradient(135deg,#96b7e8,#6f91cf) !important;
+}
+
+.btn-white{
+  background:linear-gradient(180deg,#f8f1e6,#dfd2bd) !important;
+}
+
+.chip{
+  background:rgba(255,255,255,.07) !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  box-shadow:0 8px 18px rgba(0,0,0,.14);
+}
+
+.screen::before{
+  border:1px solid rgba(143,196,188,.10) !important;
+  box-shadow:
+    inset 0 0 60px rgba(143,196,188,.035),
+    0 0 80px rgba(143,196,188,.035);
+}
+
+@media (max-width:760px){
+  .board-panel{
+    padding:10px !important;
+    border-radius:24px !important;
+  }
+
+  .hud-card{
+    border-radius:22px !important;
+  }
+}
