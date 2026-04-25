@@ -331,3 +331,32 @@ button,input{font:inherit;}
   .invite-popup-title{font-size:27px;}
   .app-toast{bottom:16px;font-size:14px;padding:12px 16px;}
 }
+
+.trivia-card{
+  position:relative;
+}
+
+.trivia-timer-badge{
+  position:absolute;
+  top:18px;
+  right:20px;
+  min-width:64px;
+  height:42px;
+  padding:0 14px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:1000;
+  color:#fff;
+  background:linear-gradient(135deg,#8fc4bc,#6f92cf);
+  box-shadow:0 12px 24px rgba(0,0,0,.20);
+}
+
+@media(max-width:760px){
+  .trivia-timer-badge{
+    position:static;
+    margin:0 auto 12px;
+    width:max-content;
+  }
+}
