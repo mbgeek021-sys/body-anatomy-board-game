@@ -191,6 +191,15 @@
 
           <div class="board-panel">${board}</div>
 
+          <div class="tile-legend">
+            <div class="legend-item"><span class="legend-dot start"></span> Start</div>
+            <div class="legend-item"><span class="legend-dot health"></span> Health</div>
+            <div class="legend-item"><span class="legend-dot chance"></span> Chance</div>
+            <div class="legend-item"><span class="legend-dot risk"></span> Risk</div>
+            <div class="legend-item"><span class="legend-dot quarantine"></span> Quarantine</div>
+            <div class="legend-item"><span class="legend-dot finish"></span> Finish</div>
+          </div>
+
           <div class="hud-wrap">
             <div class="hud-card">
               <div class="hud-title">Current Turn</div>
