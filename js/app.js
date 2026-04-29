@@ -255,25 +255,35 @@
     `;
   }
 
-  function triviaModal() {
-    if (!state.trivia) return "";
+ function triviaModal() {
+  if (!state.trivia) return "";
 
-    return `
-      <div class="trivia-modal">
-        <div class="trivia-card">
-          <div class="trivia-timer-badge">
-            ⏱ ${escapeHtml(state.timer || 20)}s
-          </div>
-          <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
-          <div class="trivia-grid">
-            ${state.trivia.choices.map(function (choice) {
-              return `<button class="btn trivia-choice" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`;
-            }).join("")}
-          </div>
+  return `
+    <div class="trivia-modal">
+      <div class="trivia-card">
+        <div class="trivia-timer-badge">⏱ ${escapeHtml(state.timer || 20)}s</div>
+
+        <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
+
+        <div class="trivia-grid">
+          ${state.trivia.choices.map(function (choice) {
+            var resultClass = "";
+            if (state.triviaResult) {
+              if (choice === state.trivia.answer) resultClass = " correct-answer";
+              else if (choice === state.triviaResult.choice) resultClass = " wrong-answer";
+            }
+
+            return `
+              <button class="btn trivia-choice${resultClass}" data-choice="${escapeHtml(choice)}">
+                ${escapeHtml(choice)}
+              </button>
+            `;
+          }).join("")}
         </div>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
   function diceOverlay() {
     return `
