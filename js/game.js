@@ -172,43 +172,56 @@
     }, 1000);
   }
 
-  window.submitTrivia = async function (choice) {
-    if (!window.state.trivia) return;
+window.submitTrivia = async function (choice) {
+  if (!window.state.trivia) return;
 
-    clearInterval(window.__triviaTimer);
+  clearInterval(window.__triviaTimer);
 
-    const player = currentPlayerSafe();
-    if (!player) return;
+  const player = currentPlayerSafe();
+  if (!player) return;
 
-    const correct = choice === window.state.trivia.answer;
+  const correct = choice === window.state.trivia.answer;
 
-    if (correct) {
-      player.score = (player.score || 0) + 2;
-      window.state.feedback = { ok: true, text: "Correct! +2 points." };
-      window.state.lastCard = { text: player.name + " answered correctly." };
-      log(player.name + " answered correctly.");
-      sound("playCorrectSound");
-      window.state.trivia = null;
-      render();
-
-      await moveForward(player, 1);
-
-      if (player.position >= maxPos()) {
-        showWinner(player);
-        return;
-      }
-    } else {
-      window.state.feedback = { ok: false, text: "Incorrect." };
-      window.state.lastCard = { text: player.name + " answered incorrectly." };
-      log(player.name + " answered incorrectly.");
-      sound("playWrongSound");
-      window.state.trivia = null;
-      render();
-    }
-
-    await wait(250);
-    nextTurn();
+  window.state.triviaResult = {
+    choice,
+    correct
   };
+
+  render();
+
+  await wait(900);
+
+  if (correct) {
+    player.score = (player.score || 0) + 2;
+    window.state.feedback = { ok: true, text: "Correct! +2 points." };
+    window.state.lastCard = { text: player.name + " answered correctly." };
+    log(player.name + " answered correctly.");
+    sound("playCorrectSound");
+
+    window.state.trivia = null;
+    window.state.triviaResult = null;
+    render();
+
+    await moveForward(player, 1);
+
+    if (player.position >= maxPos()) {
+      showWinner(player);
+      return;
+    }
+  } else {
+    window.state.feedback = { ok: false, text: "Incorrect." };
+    window.state.lastCard = { text: player.name + " answered incorrectly." };
+    log(player.name + " answered incorrectly.");
+    sound("playWrongSound");
+
+    window.state.trivia = null;
+    window.state.triviaResult = null;
+    render();
+  }
+
+  await wait(250);
+  nextTurn();
+};
 
   async function resolveLanding(player) {
     if (player.position >= maxPos()) {
