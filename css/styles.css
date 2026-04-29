@@ -360,3 +360,96 @@ button,input{font:inherit;}
     width:max-content;
   }
 }
+
+/* TRIVIA ANSWER FEEDBACK + TIMER + TILE LEGEND */
+
+.trivia-card{
+  position:relative;
+}
+
+.trivia-timer-badge{
+  position:absolute;
+  top:18px;
+  right:20px;
+  min-width:64px;
+  height:42px;
+  padding:0 14px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:1000;
+  color:#fff;
+  background:linear-gradient(135deg,#8fc4bc,#6f92cf);
+  box-shadow:0 12px 24px rgba(0,0,0,.20);
+}
+
+.trivia-choice.correct-answer{
+  background:linear-gradient(135deg,#8fc4bc,#62a69c) !important;
+  color:#fff !important;
+  box-shadow:0 0 0 3px rgba(143,196,188,.40), 0 12px 24px rgba(0,0,0,.18);
+}
+
+.trivia-choice.wrong-answer{
+  background:linear-gradient(135deg,#d99aaa,#b97985) !important;
+  color:#fff !important;
+  box-shadow:0 0 0 3px rgba(217,154,170,.35), 0 12px 24px rgba(0,0,0,.18);
+}
+
+.tile-legend{
+  max-width:1480px;
+  width:100%;
+  margin:-10px auto 0;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+}
+
+.legend-item{
+  min-height:38px;
+  padding:0 14px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  font-weight:900;
+  color:#edf6f6;
+  background:rgba(255,255,255,.065);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 10px 22px rgba(0,0,0,.16);
+}
+
+.legend-dot{
+  width:13px;
+  height:13px;
+  border-radius:999px;
+  display:inline-block;
+  box-shadow:0 0 0 3px rgba(255,255,255,.08);
+}
+
+.legend-dot.start{ background:#63b88e; }
+.legend-dot.health{ background:#86a7d8; }
+.legend-dot.chance{ background:#a595d8; }
+.legend-dot.risk{ background:#cb93a0; }
+.legend-dot.quarantine{ background:#d0aa73; }
+.legend-dot.finish{ background:#9e8bd8; }
+
+@media(max-width:760px){
+  .trivia-timer-badge{
+    position:static;
+    margin:0 auto 12px;
+    width:max-content;
+  }
+
+  .tile-legend{
+    margin:0 auto;
+    justify-content:flex-start;
+  }
+
+  .legend-item{
+    font-size:12px;
+    min-height:34px;
+  }
+}
