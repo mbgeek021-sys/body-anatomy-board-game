@@ -1,6 +1,12 @@
 (function () {
+  window.APP_CONFIG = window.APP_CONFIG || {};
+  window.APP_CONFIG.GAME_TITLE = window.APP_CONFIG.GAME_TITLE || "Body Anatomy Board Game";
+  window.APP_CONFIG.SUBTITLE = window.APP_CONFIG.SUBTITLE || "Class MIB Group Project — Beverly, Stephanie, Lizeth";
+  window.APP_CONFIG.SCHOOL = window.APP_CONFIG.SCHOOL || "North-West College • West Covina, CA • Medical Insurance Biller";
+
   window.state = window.state || {
     entered: false,
+    connectionLabel: "Ready",
     roomCode: "ROOM1",
     joinCode: "",
     lobbyName: "",
@@ -11,12 +17,20 @@
     feedback: null,
     eventLog: [],
     trivia: null,
+    triviaResult: null,
     timer: 20,
     isRolling: false,
     toast: "",
     invitePopupOpen: false,
-    inviteLink: ""
+    inviteLink: "",
+    onlineCount: 0
   };
+
+  window.clientId = localStorage.getItem("anatomy-client-id");
+  if (!window.clientId) {
+    window.clientId = "client_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem("anatomy-client-id", window.clientId);
+  }
 
   window.escapeHtml = function (v) {
     return String(v == null ? "" : v)
@@ -66,22 +80,99 @@
     }
   };
 
+  async function setupLiveRoom() {
+    if (!window.APP_CONFIG.SUPABASE_CONFIG) {
+      state.connectionLabel = "Local mode";
+      return false;
+    }
+
+    if (!window.sb) {
+      window.initSupabase();
+    }
+
+    await window.ensureRoomExists();
+
+    var room = await window.fetchRoom();
+    var roomState = room && room.state_json ? room.state_json : window.defaultRoomState();
+    var players = Array.isArray(roomState.players) ? roomState.players : [];
+    var alreadyInRoom = players.some(function (p) {
+      return p.ownerId === window.clientId;
+    });
+
+    if (!alreadyInRoom && players.length >= 20) {
+      state.connectionLabel = "Room full";
+      state.lastCard = { text: "This room already has 20 players." };
+      window.safeRender();
+      return false;
+    }
+
+    await window.joinRoomStateOnly();
+
+    state.entered = true;
+    state.connectionLabel = "Live sync active";
+    state.onlineCount = state.players.length;
+
+    if (typeof window.startPolling === "function") {
+      window.startPolling();
+    }
+
+    return true;
+  }
+
+  async function saveLiveRoom() {
+    if (!window.sb || !state.entered) return;
+
+    try {
+      window.localActionLock = true;
+      await window.saveRoomState();
+      window.localActionLock = false;
+    } catch (e) {
+      window.localActionLock = false;
+      console.error(e);
+      state.connectionLabel = "Sync save failed";
+      window.safeRender();
+    }
+  }
+
+  function patchGameSync() {
+    if (window.__liveGamePatched) return;
+    window.__liveGamePatched = true;
+
+    var oldRoll = window.handleRoll;
+    if (typeof oldRoll === "function") {
+      window.handleRoll = async function () {
+        await oldRoll.apply(this, arguments);
+        await saveLiveRoom();
+      };
+    }
+
+    var oldTrivia = window.submitTrivia;
+    if (typeof oldTrivia === "function") {
+      window.submitTrivia = async function () {
+        await oldTrivia.apply(this, arguments);
+        await saveLiveRoom();
+      };
+    }
+  }
+
   function topbar() {
     return `
       <div class="topbar">
         <div class="topbar-left">
           <div class="logo">🧠</div>
           <div>
-            <div class="topbar-title">Body Anatomy Board Game</div>
+            <div class="topbar-title">${escapeHtml(APP_CONFIG.GAME_TITLE)}</div>
             <div class="topbar-meta">
-              Class MIB Group Project — Beverly, Stephanie, Lizeth<br>
-              North-West College • West Covina, CA • Medical Insurance Biller
+              ${escapeHtml(APP_CONFIG.SUBTITLE)}<br>
+              ${escapeHtml(APP_CONFIG.SCHOOL)}
             </div>
           </div>
         </div>
 
         <div class="chip-row">
           <div class="chip">Room: ${escapeHtml(state.roomCode)}</div>
+          <div class="chip">${escapeHtml(state.onlineCount || state.players.length || 0)} / 20 Players</div>
+          <div class="chip">${escapeHtml(state.connectionLabel || "Ready")}</div>
           <button class="btn btn-white" id="copyCodeBtn">📋 Code</button>
           <button class="btn btn-blue" id="inviteBtn">🔗 Invite</button>
           <button class="btn btn-white" id="backBtn">Back</button>
@@ -121,22 +212,24 @@
               <div class="logo">🧠</div>
               <div>
                 <div class="lobby-kicker">Anatomy Game Room</div>
-                <div class="topbar-title">Body Anatomy Board Game</div>
+                <div class="topbar-title">${escapeHtml(APP_CONFIG.GAME_TITLE)}</div>
                 <div class="topbar-meta">
-                  Class MIB Group Project — Beverly, Stephanie, Lizeth<br>
-                  North-West College • West Covina, CA • Medical Insurance Biller
+                  ${escapeHtml(APP_CONFIG.SUBTITLE)}<br>
+                  ${escapeHtml(APP_CONFIG.SCHOOL)}
                 </div>
               </div>
             </div>
 
             <div class="lobby-hero-copy">
               <div class="lobby-hero-title">Roll, learn, race to the Brain.</div>
-              <div class="lobby-hero-text">Share your room code and start when everyone is ready.</div>
+              <div class="lobby-hero-text">Share your invite link or room code. Up to 20 players can join.</div>
             </div>
 
             <div class="lobby-room-spotlight">
               <div class="lobby-room-label">ROOM CODE</div>
               <div class="lobby-room-code">${escapeHtml(state.roomCode)}</div>
+              <div class="lobby-room-note">${escapeHtml(state.connectionLabel || "Ready")}</div>
+
               <div class="lobby-room-actions">
                 <button class="btn btn-white" id="copyCodeLobby">📋 Copy Code</button>
                 <button class="btn btn-blue" id="inviteLobby">🔗 Copy Invite Link</button>
@@ -161,7 +254,7 @@
 
               <div class="entry-actions">
                 <button class="btn btn-white" id="newCodeBtn">New Code</button>
-                <button class="btn btn-main" id="startBtn">Start Room</button>
+                <button class="btn btn-main" id="startBtn">Join / Start Room</button>
               </div>
             </div>
           </div>
@@ -169,6 +262,54 @@
 
         ${toast()}
         ${invitePopup()}
+      </div>
+    `;
+  }
+
+  function triviaModal() {
+    if (!state.trivia) return "";
+
+    return `
+      <div class="trivia-modal">
+        <div class="trivia-card">
+          <div class="trivia-timer-badge">⏱ ${escapeHtml(state.timer || 20)}s</div>
+          <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
+
+          <div class="trivia-grid">
+            ${state.trivia.choices.map(function (choice) {
+              var resultClass = "";
+
+              if (state.triviaResult) {
+                if (choice === state.trivia.answer) resultClass = " correct-answer";
+                else if (choice === state.triviaResult.choice) resultClass = " wrong-answer";
+              }
+
+              return `<button class="btn trivia-choice${resultClass}" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function diceOverlay() {
+    return `
+      <div id="diceOverlay" class="dice-overlay hidden">
+        <div id="diceBox" class="dice-box">⚀</div>
+        <div id="diceLabel" class="dice-label">Rolling...</div>
+      </div>
+    `;
+  }
+
+  function tileLegend() {
+    return `
+      <div class="tile-legend">
+        <div class="legend-item"><span class="legend-dot start"></span> Start</div>
+        <div class="legend-item"><span class="legend-dot health"></span> Health</div>
+        <div class="legend-item"><span class="legend-dot chance"></span> Chance</div>
+        <div class="legend-item"><span class="legend-dot risk"></span> Risk</div>
+        <div class="legend-item"><span class="legend-dot quarantine"></span> Quarantine</div>
+        <div class="legend-item"><span class="legend-dot finish"></span> Finish</div>
       </div>
     `;
   }
@@ -190,15 +331,7 @@
           ${topbar()}
 
           <div class="board-panel">${board}</div>
-
-          <div class="tile-legend">
-            <div class="legend-item"><span class="legend-dot start"></span> Start</div>
-            <div class="legend-item"><span class="legend-dot health"></span> Health</div>
-            <div class="legend-item"><span class="legend-dot chance"></span> Chance</div>
-            <div class="legend-item"><span class="legend-dot risk"></span> Risk</div>
-            <div class="legend-item"><span class="legend-dot quarantine"></span> Quarantine</div>
-            <div class="legend-item"><span class="legend-dot finish"></span> Finish</div>
-          </div>
+          ${tileLegend()}
 
           <div class="hud-wrap">
             <div class="hud-card">
@@ -223,7 +356,7 @@
             <div class="hud-card">
               <div class="hud-title">Players</div>
               <div class="players-strip">
-                ${state.players.map(function (pl, i) {
+                ${(state.players || []).map(function (pl, i) {
                   return `
                     <div class="player-card">
                       <div class="player-top">
@@ -233,7 +366,9 @@
                           <div style="font-size:12px;color:var(--muted)">Position ${escapeHtml(pl.position || 0)}</div>
                         </div>
                       </div>
-                      <div style="font-size:12px;color:var(--muted)">Score: ${escapeHtml(pl.score || 0)}</div>
+                      <div style="font-size:12px;color:var(--muted)">
+                        Score: ${escapeHtml(pl.score || 0)} • Shields: ${escapeHtml(pl.shields || 0)}
+                      </div>
                     </div>
                   `;
                 }).join("")}
@@ -241,10 +376,10 @@
             </div>
           </div>
 
-           <div class="hud-card notebook-log-wrap">
+          <div class="hud-card notebook-log-wrap">
             <div class="hud-title">Game Log</div>
             <div class="notebook-log">
-              ${(state.eventLog.length ? state.eventLog.slice(-8).reverse() : [{message:"No game events yet."}]).map(function (item, index) {
+              ${((state.eventLog || []).length ? state.eventLog.slice(-8).reverse() : [{message:"No game events yet."}]).map(function (item, index) {
                 return `
                   <div class="notebook-row">
                     <div class="notebook-dot">${index + 1}</div>
@@ -260,73 +395,6 @@
         ${diceOverlay()}
         ${toast()}
         ${invitePopup()}
-      </div>
-    `;
-  }
-
- function triviaModal() {
-  if (!state.trivia) return "";
-
-  // START TIMER ONLY ONCE
-  if (!window.__triviaTimerRunning) {
-    window.__triviaTimerRunning = true;
-
-    clearInterval(window.__triviaTimer);
-    window.state.timer = 20;
-
-    window.__triviaTimer = setInterval(() => {
-      if (!window.state.trivia) {
-        clearInterval(window.__triviaTimer);
-        window.__triviaTimerRunning = false;
-        return;
-      }
-
-      window.state.timer--;
-
-      if (window.state.timer <= 0) {
-        clearInterval(window.__triviaTimer);
-        window.__triviaTimerRunning = false;
-
-        window.submitTrivia(null);
-        return;
-      }
-
-      render();
-    }, 1000);
-  }
-
-  return `
-    <div class="trivia-modal">
-      <div class="trivia-card">
-        <div class="trivia-timer-badge">⏱ ${escapeHtml(state.timer || 20)}s</div>
-
-        <div class="trivia-q">${escapeHtml(state.trivia.q)}</div>
-
-        <div class="trivia-grid">
-          ${state.trivia.choices.map(function (choice) {
-            var resultClass = "";
-            if (state.triviaResult) {
-              if (choice === state.trivia.answer) resultClass = " correct-answer";
-              else if (choice === state.triviaResult.choice) resultClass = " wrong-answer";
-            }
-
-            return `
-              <button class="btn trivia-choice${resultClass}" data-choice="${escapeHtml(choice)}">
-                ${escapeHtml(choice)}
-              </button>
-            `;
-          }).join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-  
-  function diceOverlay() {
-    return `
-      <div id="diceOverlay" class="dice-overlay hidden">
-        <div id="diceBox" class="dice-box">⚀</div>
-        <div id="diceLabel" class="dice-label">Rolling...</div>
       </div>
     `;
   }
@@ -350,7 +418,7 @@
     }
   };
 
-  function bindEvents() {
+  function bindInviteEvents() {
     document.getElementById("closeInviteBtn")?.addEventListener("click", function () {
       state.invitePopupOpen = false;
       safeRender();
@@ -362,10 +430,15 @@
         safeRender();
       }
     });
+  }
+
+  function bindEvents() {
+    bindInviteEvents();
 
     if (!state.entered) {
       document.getElementById("nameInput")?.addEventListener("input", function (e) {
         state.lobbyName = e.target.value;
+        localStorage.setItem("anatomy-player-name", state.lobbyName);
       });
 
       document.getElementById("codeInput")?.addEventListener("input", function (e) {
@@ -378,19 +451,47 @@
         safeRender();
       });
 
-      document.getElementById("startBtn")?.addEventListener("click", function () {
+      document.getElementById("startBtn")?.addEventListener("click", async function () {
         state.roomCode = (state.joinCode || state.roomCode).toUpperCase();
-        state.players = [{
-          id: 1,
-          name: state.lobbyName || "BEV",
-          position: 0,
-          score: 0,
-          shields: 0
-        }];
-        state.currentPlayerIndex = 0;
-        state.entered = true;
-        state.eventLog = [{ message: "Room started." }];
+        state.lobbyName = (state.lobbyName || "").trim() || "Player";
+        state.connectionLabel = "Connecting...";
         safeRender();
+
+        try {
+          var liveOk = await setupLiveRoom();
+
+          if (!liveOk) {
+            state.players = [{
+              id: 1,
+              name: state.lobbyName,
+              ownerId: window.clientId,
+              position: 0,
+              score: 0,
+              shields: 0
+            }];
+            state.currentPlayerIndex = 0;
+            state.entered = true;
+            state.eventLog = [{ message: "Room started locally." }];
+          }
+
+          patchGameSync();
+          safeRender();
+        } catch (e) {
+          console.error(e);
+          state.connectionLabel = "Local fallback";
+          state.players = [{
+            id: 1,
+            name: state.lobbyName,
+            ownerId: window.clientId,
+            position: 0,
+            score: 0,
+            shields: 0
+          }];
+          state.currentPlayerIndex = 0;
+          state.entered = true;
+          state.eventLog = [{ message: "Room started locally. Supabase connection failed." }];
+          safeRender();
+        }
       });
 
       document.getElementById("copyCodeLobby")?.addEventListener("click", copyRoomCode);
@@ -411,19 +512,25 @@
 
       document.querySelectorAll("[data-choice]").forEach(function (btn) {
         btn.addEventListener("click", function () {
-          if (typeof window.submitTrivia === "function") window.submitTrivia(btn.getAttribute("data-choice"));
+          if (typeof window.submitTrivia === "function") {
+            window.submitTrivia(btn.getAttribute("data-choice"));
+          }
         });
       });
     }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    var savedName = localStorage.getItem("anatomy-player-name");
+    if (savedName) state.lobbyName = savedName;
+
     var params = new URLSearchParams(window.location.search);
     var room = params.get("room");
 
     state.roomCode = room ? room.toUpperCase() : makeCode();
     state.joinCode = state.roomCode;
 
+    patchGameSync();
     safeRender();
   });
 })();
