@@ -294,6 +294,29 @@
   `;
 }
 
+  clearInterval(window.__triviaTimer);
+
+window.state.timer = 20;
+
+window.__triviaTimer = setInterval(() => {
+  if (!window.state.trivia) {
+    clearInterval(window.__triviaTimer);
+    return;
+  }
+
+  window.state.timer--;
+
+  if (window.state.timer <= 0) {
+    clearInterval(window.__triviaTimer);
+
+    // auto fail if time runs out
+    window.submitTrivia(null);
+    return;
+  }
+
+  render();
+}, 1000);
+  
   function diceOverlay() {
     return `
       <div id="diceOverlay" class="dice-overlay hidden">
