@@ -267,6 +267,34 @@
  function triviaModal() {
   if (!state.trivia) return "";
 
+  // START TIMER ONLY ONCE
+  if (!window.__triviaTimerRunning) {
+    window.__triviaTimerRunning = true;
+
+    clearInterval(window.__triviaTimer);
+    window.state.timer = 20;
+
+    window.__triviaTimer = setInterval(() => {
+      if (!window.state.trivia) {
+        clearInterval(window.__triviaTimer);
+        window.__triviaTimerRunning = false;
+        return;
+      }
+
+      window.state.timer--;
+
+      if (window.state.timer <= 0) {
+        clearInterval(window.__triviaTimer);
+        window.__triviaTimerRunning = false;
+
+        window.submitTrivia(null);
+        return;
+      }
+
+      render();
+    }, 1000);
+  }
+
   return `
     <div class="trivia-modal">
       <div class="trivia-card">
@@ -293,29 +321,6 @@
     </div>
   `;
 }
-
-  clearInterval(window.__triviaTimer);
-
-window.state.timer = 20;
-
-window.__triviaTimer = setInterval(() => {
-  if (!window.state.trivia) {
-    clearInterval(window.__triviaTimer);
-    return;
-  }
-
-  window.state.timer--;
-
-  if (window.state.timer <= 0) {
-    clearInterval(window.__triviaTimer);
-
-    // auto fail if time runs out
-    window.submitTrivia(null);
-    return;
-  }
-
-  render();
-}, 1000);
   
   function diceOverlay() {
     return `
