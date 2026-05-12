@@ -50,6 +50,35 @@
 
   window.currentPlayer = currentPlayer;
 
+  function isMyTurn() {
+  var p = currentPlayer();
+  return !!p && p.ownerId === window.clientId;
+}
+
+function currentTriviaOwnerId() {
+  if (!state.trivia) return null;
+  if (state.trivia.playerOwnerId) return state.trivia.playerOwnerId;
+
+  var p = currentPlayer();
+  return p ? p.ownerId : null;
+}
+
+function canAnswerTrivia() {
+  var ownerId = currentTriviaOwnerId();
+  return !!ownerId && ownerId === window.clientId;
+}
+
+function showTinyToast(message) {
+  state.toast = message;
+  window.safeRender();
+
+  clearTimeout(window.__turnLockToast);
+  window.__turnLockToast = setTimeout(function () {
+    state.toast = "";
+    window.safeRender();
+  }, 1500);
+}
+
   window.getRoomLink = function () {
     return window.location.origin + window.location.pathname + "?room=" + encodeURIComponent(state.roomCode || "");
   };
