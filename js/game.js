@@ -2,7 +2,6 @@
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const TRIVIA = [
-    const triviaQuestions = [
   {
     q: "Which organ pumps blood through the body?",
     choices: ["Heart", "Liver", "Lungs", "Kidney"],
