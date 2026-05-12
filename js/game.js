@@ -2,11 +2,98 @@
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const TRIVIA = [
-    { q: "How many bones are in an adult body?", choices: ["206", "150", "250", "180"], answer: "206" },
-    { q: "Which organ pumps blood?", choices: ["Brain", "Heart", "Liver", "Lung"], answer: "Heart" },
-    { q: "Which organ stores urine?", choices: ["Bladder", "Kidney", "Colon", "Liver"], answer: "Bladder" },
-    { q: "Largest organ of the body?", choices: ["Skin", "Heart", "Brain", "Liver"], answer: "Skin" }
-  ];
+    const triviaQuestions = [
+  {
+    q: "Which organ pumps blood through the body?",
+    choices: ["Heart", "Liver", "Lungs", "Kidney"],
+    answer: "Heart"
+  },
+  {
+    q: "Which organ helps you breathe?",
+    choices: ["Brain", "Lungs", "Stomach", "Pancreas"],
+    answer: "Lungs"
+  },
+  {
+    q: "Which organ filters blood?",
+    choices: ["Kidney", "Heart", "Appendix", "Ribs"],
+    answer: "Kidney"
+  },
+  {
+    q: "Which bone protects the brain?",
+    choices: ["Skull", "Femur", "Ulna", "Patella"],
+    answer: "Skull"
+  },
+  {
+    q: "Which organ stores urine?",
+    choices: ["Bladder", "Liver", "Colon", "Kidney"],
+    answer: "Bladder"
+  },
+  {
+    q: "How many lungs does a human have?",
+    choices: ["2", "1", "3", "4"],
+    answer: "2"
+  },
+  {
+    q: "What carries oxygen in the blood?",
+    choices: ["Red blood cells", "Bones", "Nerves", "Skin"],
+    answer: "Red blood cells"
+  },
+  {
+    q: "Which organ controls the body?",
+    choices: ["Brain", "Heart", "Liver", "Lungs"],
+    answer: "Brain"
+  },
+  {
+    q: "Which body part helps you smell?",
+    choices: ["Nose", "Ear", "Eye", "Tongue"],
+    answer: "Nose"
+  },
+  {
+    q: "Which body system includes the heart?",
+    choices: ["Circulatory", "Digestive", "Respiratory", "Skeletal"],
+    answer: "Circulatory"
+  },
+  {
+    q: "Which organ digests food?",
+    choices: ["Stomach", "Brain", "Lungs", "Ribs"],
+    answer: "Stomach"
+  },
+  {
+    q: "Which organ removes toxins from blood?",
+    choices: ["Liver", "Heart", "Kidney", "Pancreas"],
+    answer: "Liver"
+  },
+  {
+    q: "Which bone is in your upper arm?",
+    choices: ["Humerus", "Femur", "Ulna", "Tibia"],
+    answer: "Humerus"
+  },
+  {
+    q: "Which bone is in your thigh?",
+    choices: ["Femur", "Radius", "Fibula", "Clavicle"],
+    answer: "Femur"
+  },
+  {
+    q: "Which organ helps control blood sugar?",
+    choices: ["Pancreas", "Heart", "Liver", "Colon"],
+    answer: "Pancreas"
+  },
+  {
+    q: "Which organ is part of the respiratory system?",
+    choices: ["Trachea", "Liver", "Bladder", "Appendix"],
+    answer: "Trachea"
+  },
+  {
+    q: "What do bones mainly provide?",
+    choices: ["Support", "Digestion", "Breathing", "Hearing"],
+    answer: "Support"
+  },
+  {
+    q: "Which organ absorbs nutrients from food?",
+    choices: ["Small intestine", "Heart", "Kidney", "Lungs"],
+    answer: "Small intestine"
+  },
+];
 
   function players() {
     if (!Array.isArray(window.state.players)) window.state.players = [];
