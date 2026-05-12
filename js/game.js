@@ -91,7 +91,7 @@
     q: "Which organ absorbs nutrients from food?",
     choices: ["Small intestine", "Heart", "Kidney", "Lungs"],
     answer: "Small intestine"
-  },
+  }
 ];
 
   function players() {
