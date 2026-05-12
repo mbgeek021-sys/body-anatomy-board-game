@@ -170,6 +170,11 @@ function showTinyToast(message) {
     var oldRoll = window.handleRoll;
     if (typeof oldRoll === "function") {
       window.handleRoll = async function () {
+        if (!isMyTurn()) {
+          showTinyToast("Waiting for your turn.");
+          return;
+        }
+
         await oldRoll.apply(this, arguments);
         await saveLiveRoom();
       };
@@ -178,6 +183,11 @@ function showTinyToast(message) {
     var oldTrivia = window.submitTrivia;
     if (typeof oldTrivia === "function") {
       window.submitTrivia = async function () {
+        if (!canAnswerTrivia()) {
+          showTinyToast("Only the current player can answer.");
+          return;
+        }
+
         await oldTrivia.apply(this, arguments);
         await saveLiveRoom();
       };
@@ -298,6 +308,8 @@ function showTinyToast(message) {
   function triviaModal() {
     if (!state.trivia) return "";
 
+    var canAnswer = canAnswerTrivia();
+
     return `
       <div class="trivia-modal">
         <div class="trivia-card">
@@ -313,7 +325,7 @@ function showTinyToast(message) {
                 else if (choice === state.triviaResult.choice) resultClass = " wrong-answer";
               }
 
-              return `<button class="btn trivia-choice${resultClass}" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`;
+              return `<button class="btn trivia-choice${resultClass}" data-choice="${escapeHtml(choice)}" ${canAnswer ? "" : "disabled"}>${escapeHtml(choice)}</button>`;
             }).join("")}
           </div>
         </div>
@@ -353,6 +365,7 @@ function showTinyToast(message) {
     }
 
     var p = currentPlayer();
+    var myTurn = isMyTurn();
 
     return `
       <div class="screen">
@@ -374,7 +387,9 @@ function showTinyToast(message) {
             <div class="hud-card">
               <div class="hud-title">Game Actions</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <button class="btn btn-main" id="rollBtn">${state.isRolling ? "Rolling..." : "🎲 Roll"}</button>
+                <button class="btn btn-main" id="rollBtn" ${myTurn ? "" : "disabled"}>
+                  ${myTurn ? (state.isRolling ? "Rolling..." : "🎲 Roll") : "Watching..."}
+                </button>
                 <button class="btn btn-blue" id="shareBtn">🔗 Invite</button>
               </div>
               <div class="action-box" style="margin-top:12px;">
