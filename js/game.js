@@ -403,30 +403,56 @@ window.submitTrivia = async function (choice) {
   await wait(900);
 
   if (correct) {
+
+    // RANDOM BONUS MOVE (1 OR 2)
+    const rewardMove = Math.random() < 0.5 ? 1 : 2;
+
     player.score = (player.score || 0) + 2;
-    window.state.feedback = { ok: true, text: "Correct! +2 points." };
-    window.state.lastCard = { text: player.name + " answered correctly." };
+
+    window.state.feedback = {
+      ok: true,
+      text: "Correct! Move forward " + rewardMove + "."
+    };
+
+    window.state.lastCard = {
+      text: player.name + " answered correctly and moved +" + rewardMove + "."
+    };
+
     log(player.name + " answered correctly.");
     sound("playCorrectSound");
 
     window.state.trivia = null;
     window.state.triviaResult = null;
+
     render();
 
-    await moveForward(player, 1);
+    await moveForward(player, rewardMove);
 
     if (player.position >= maxPos()) {
       showWinner(player);
       return;
     }
+
   } else {
-    window.state.feedback = { ok: false, text: "Incorrect." };
-    window.state.lastCard = { text: player.name + " answered incorrectly." };
+
+    // MOVE BACK 1
+    player.position = Math.max(0, (player.position || 0) - 1);
+
+    window.state.feedback = {
+      ok: false,
+      text: "Incorrect! Move back 1."
+    };
+
+    window.state.lastCard = {
+      text: player.name + " answered incorrectly and moved back 1."
+    };
+
     log(player.name + " answered incorrectly.");
     sound("playWrongSound");
 
     window.state.trivia = null;
     window.state.triviaResult = null;
+
     render();
   }
 
