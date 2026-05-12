@@ -28,6 +28,131 @@
     answer: "Bladder"
   },
   {
+    q: "What is the strongest bone in the body?",
+    choices: ["Femur", "Skull", "Ribs", "Spine"],
+    answer: "Femur"
+  },
+  {
+    q: "Which organ produces insulin?",
+    choices: ["Pancreas", "Liver", "Kidney", "Heart"],
+    answer: "Pancreas"
+  },
+  {
+    q: "How many chambers does the human heart have?",
+    choices: ["4", "2", "3", "5"],
+    answer: "4"
+  },
+  {
+    q: "Which body system controls hormones?",
+    choices: ["Endocrine", "Respiratory", "Digestive", "Skeletal"],
+    answer: "Endocrine"
+  },
+  {
+    q: "Which organ is responsible for vision?",
+    choices: ["Eyes", "Ears", "Skin", "Tongue"],
+    answer: "Eyes"
+  },
+  {
+    q: "What is the main function of red blood cells?",
+    choices: ["Carry oxygen", "Fight infection", "Digest food", "Store fat"],
+    answer: "Carry oxygen"
+  },
+  {
+    q: "Which organ is located below the lungs?",
+    choices: ["Diaphragm", "Kidney", "Bladder", "Colon"],
+    answer: "Diaphragm"
+  },
+  {
+    q: "Which body part contains enamel?",
+    choices: ["Teeth", "Bones", "Skin", "Nails"],
+    answer: "Teeth"
+  },
+  {
+    q: "Which organ controls memory?",
+    choices: ["Brain", "Heart", "Lungs", "Liver"],
+    answer: "Brain"
+  },
+  {
+    q: "Which vitamin is mainly produced from sunlight?",
+    choices: ["Vitamin D", "Vitamin C", "Vitamin A", "Vitamin K"],
+    answer: "Vitamin D"
+  },
+  {
+    q: "What is the smallest bone in the body?",
+    choices: ["Stapes", "Femur", "Ulna", "Fibula"],
+    answer: "Stapes"
+  },
+  {
+    q: "Which body system includes the kidneys?",
+    choices: ["Urinary", "Respiratory", "Muscular", "Nervous"],
+    answer: "Urinary"
+  },
+  {
+    q: "Which organ produces urine?",
+    choices: ["Kidneys", "Bladder", "Liver", "Colon"],
+    answer: "Kidneys"
+  },
+  {
+    q: "What is the normal number of adult teeth?",
+    choices: ["32", "28", "24", "36"],
+    answer: "32"
+  },
+  {
+    q: "Which organ helps maintain balance?",
+    choices: ["Inner ear", "Heart", "Stomach", "Pancreas"],
+    answer: "Inner ear"
+  },
+  {
+    q: "Which blood type is known as the universal donor?",
+    choices: ["O Negative", "AB Positive", "A Positive", "B Negative"],
+    answer: "O Negative"
+  },
+  {
+    q: "What is the main function of white blood cells?",
+    choices: ["Fight infection", "Carry oxygen", "Digest nutrients", "Build muscles"],
+    answer: "Fight infection"
+  },
+  {
+    q: "Which organ is part of both the digestive and endocrine systems?",
+    choices: ["Pancreas", "Lungs", "Brain", "Heart"],
+    answer: "Pancreas"
+  },
+  {
+    q: "Which body part contains the tibia?",
+    choices: ["Leg", "Arm", "Chest", "Head"],
+    answer: "Leg"
+  },
+  {
+    q: "What protects the spinal cord?",
+    choices: ["Vertebrae", "Ribs", "Skull", "Muscles"],
+    answer: "Vertebrae"
+  },
+  {
+    q: "Which body system carries oxygen and nutrients?",
+    choices: ["Circulatory", "Digestive", "Respiratory", "Nervous"],
+    answer: "Circulatory"
+  },
+  {
+    q: "What is the medical term for the voice box?",
+    choices: ["Larynx", "Pharynx", "Esophagus", "Trachea"],
+    answer: "Larynx"
+  },
+  {
+    q: "Which organ breaks down alcohol?",
+    choices: ["Liver", "Kidney", "Heart", "Stomach"],
+    answer: "Liver"
+  },
+  {
+    q: "Which body system includes nerves?",
+    choices: ["Nervous system", "Digestive system", "Urinary system", "Skeletal system"],
+    answer: "Nervous system"
+  },
+  {
+    q: "What is the largest muscle in the body?",
+    choices: ["Gluteus maximus", "Biceps", "Triceps", "Deltoid"],
+    answer: "Gluteus maximus"
+  }, 
+  {
     q: "How many lungs does a human have?",
     choices: ["2", "1", "3", "4"],
     answer: "2"
